@@ -1,0 +1,30 @@
+pKNN + Active Learning README File
+==================================
+
+1. Requirements and Installation
+
+Matlab v 7.0 or higher with optimization tool-box is required. For installation, type Install_mex on a Matlab command shell.
+
+2. Quick-start
+
+To test the code, we have provided DemoExample_script_pknn_al.m, which runs pKNN classifier with active learning over an example dataset (3 class problem) whose kernel and labels are provided in DemoExampleData\K.mat and DemoExampleData\labels.mat
+
+3. Using the code
+
+Following are the main files in the package:
+
+pknnTrain: Trains a pknn classifier
+pknnPredict: Predicts class labels for the provided test poitns using a trained pknn classifier model
+pknn_active: Actively selects examples to be labeled using the framework of Jain and Kapoor, CVPR'09
+
+Assumptions:
+1) The kernel should be positive semi-definite and should have reasonably large rank
+2) Labels are assumed to be from 1:numclass (numclass is the number of classes)
+3) Code typically performs best in the setting where the number of classes is large and the number of examples per class is reasonably small (Note that this the setting where active learning is most crucial and practical).
+
+
+4. Citation
+
+Finally, please acknowledge the use of our code with a citation:
+
+Prateek Jain and Ashish Kapoor. "Active Learning for Large Multi-class Problems." Proc. IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR), 2009.
