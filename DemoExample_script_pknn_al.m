@@ -14,13 +14,13 @@ addpath ../../..
 addpath ../../../cal101-ker-15-1
 load el2_gb.mat
 K = matrix;
-load echi2_phowColor_L0.mat
-K = K + matrix;
-load echi2_phowColor_L1.mat
-K = K + matrix;
-load echi2_phowColor_L2.mat
-K = K + matrix;
-K = K / 4;
+%load echi2_phowColor_L0.mat
+%K = K + matrix;
+%load echi2_phowColor_L1.mat
+%K = K + matrix;
+%load echi2_phowColor_L2.mat
+%K = K + matrix;
+%K = K / 4;
 
 
 
@@ -36,17 +36,17 @@ lbl = trainImageClasses';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-numclass=length(unique(lbl));
-
+%numclass=length(unique(lbl));
+numclass = 20
 initN=2; %Number of initial labeled examples
 poolN=15; %Number of examples in the pool, remaining are "hold-out" examples and are used for testing accuracy
 
-numrun=5; %Average over 20 runs
+numrun=1; %Average over 20 runs
 n=size(K,2);
 m=numclass;
 params=SetDefaultArguments(numclass); %Set default parameters
 params.thres=1e-4;
-params.al_round=10; %Set number of active learning rounds to be 10
+params.al_round=5; %Set number of active learning rounds to be 10
 params.al_numqr=20; %Set number of examples to be labeled in each round to be  2
 
 
@@ -77,6 +77,13 @@ for run=1:numrun
     end
 
     
+    trn_idx_pknn_rand=trn_idx;
+    qr_idx_pknn_rand=qr_idx;
+    test_idx_pknn_rand=test_idx;
+    params.al_type=0; %Use random selection for active learning
+    fprintf('\n pKNN+RF   Run%d\n',run);
+    acc_pknn_rf(:,run)=pknn_new(K([trn_idx_pknn_rand qr_idx_pknn_rand],[trn_idx_pknn_rand qr_idx_pknn_rand]), K(test_idx_pknn_rand, [trn_idx_pknn_rand qr_idx_pknn_rand]), 1:length(trn_idx_pknn_rand), length(trn_idx_pknn_rand)+(1:length(qr_idx_pknn_rand)), lbl([trn_idx_pknn_rand qr_idx_pknn_rand]), lbl(test_idx_pknn_rand), numclass, params);
+
     %Active learning with method 1
     trn_idx_pknn_al=trn_idx; %Initial training index
     qr_idx_pknn_al=qr_idx; %Initial query set (from which examples to be labeled are selected)
@@ -86,7 +93,7 @@ for run=1:numrun
     fprintf('\n pKNN+AL   Run%d\n',run);
     acc_pknn_al(:,run)=pknn_active(K([trn_idx_pknn_al qr_idx_pknn_al],[trn_idx_pknn_al qr_idx_pknn_al]),K(test_idx_pknn_al, [trn_idx_pknn_al qr_idx_pknn_al]), 1:length(trn_idx_pknn_al),length(trn_idx_pknn_al)+(1:length(qr_idx_pknn_al)) , lbl([trn_idx_pknn_al qr_idx_pknn_al]), lbl(test_idx_pknn_al), numclass,params);
 
-
+ 
     %Active learning with random selection
     trn_idx_pknn_rand=trn_idx;
     qr_idx_pknn_rand=qr_idx;

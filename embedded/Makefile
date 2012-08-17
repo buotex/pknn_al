@@ -1,18 +1,16 @@
 MEX = mex
-CXX = /usr/bin/clang++
+CC = /usr/bin/clang
 MEXSUFFIX  = mexglx
-all : libmatlab.$(MEXSUFFIX)
+all : rfpred.$(MEXSUFFIX)
 #MATLABHOME = /cs/local/generic/lib/pkg/matlab-7.3
-MEX        = mex
-CFLAGS     = -fPIC -Wno-c++11-compat #-DMX_COMPAT_32 \
-               -DMATLAB_MEX_FILE
+CFLAGS     = -fPIC  -DMATLAB_MEX_FILE  #-DMX_COMPAT_32 \
+               
+LDFLAGS    = -shared -rdynamic
 
 LIBS      = -lm -lluajit
-INCLUDE   = -I$(MATLABHOME)/extern/include -I/usr/local/include/luajit-2.0
+INCLUDE   = -I/usr/local/include/luajit-2.0  '-I$(MATLABHOME)/extern/include'
 LINK 	    = -L/usr/local/lib
-MEXFLAGS  = -cxx CC='$(CXX)' CXX='$(CXX)' LD='$(CXX)'
-
-
+MEXFLAGS  = CC='$(CC)' LD='$(CC)' LDFLAGS='$(LDFLAGS)' -largeArrayDims
 
 
 
@@ -21,7 +19,7 @@ MEXFLAGS  = -cxx CC='$(CXX)' CXX='$(CXX)' LD='$(CXX)'
 
 .FORCE:
 
-libmatlab.$(MEXSUFFIX): matlab.o
-	  $(MEX) $(MEXFLAGS) $(LINK) $(LIBS) -output libmatlab $^
-matlab.o: matlab.cpp
-	$(CXX) $(CFLAGS) $(INCLUDE) -c $^
+rfpred.$(MEXSUFFIX): rfpred.o
+	  $(MEX) $(MEXFLAGS) $(LINK) $(LIBS) -output rfpred $^
+rfpred.o: rfpred.c
+	$(CC) $(CFLAGS) $(INCLUDE) -c $^
