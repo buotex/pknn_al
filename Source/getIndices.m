@@ -1,25 +1,32 @@
 %tuvCalc.m
-
-
-
-function indices = getIndices(counts, marginalProbs, numAl)
-	tuvs = tuvCalc(counts, marginalProbs)
-
-	indices = ones(numAl,1);
-
-end
-function TUV = tuvCalc(counts, marginalProbs)
-	for i = 1:size(counts, 1)
-		alpha = convert(counts(i,:))
-
+function retIndices = getIndices(counts, marginalProbs, numAl, numClasses)
+	tuvs = tuvCalc(counts, marginalProbs, numClasses);
+	[tuvs, Indices] = sort(tuvs, 'descend');
+	retIndices = Indices(1:numAl);
 	
-	end
-    
-    =
+
+end
+function tuv = tuvCalc(counts, marginalProbs, numClasses)
+
+    samples = 1000;
+    numQueries = size(counts, 2);
+    tuv = zeros(numQueries, 1);
+    for i = 1:numQueries
+	alpha = convert(counts(:,i), numClasses);
+	[p1,p2] = dirich(alpha, samples);
+	p2 = max(p2);
+	tuv(i) = marginalProbs(i) * (p1 - p2);
+    end
+
 
 end
 
-function alpha = convert(counts)
+function alpha = convert(countslice, numClasses)
 
+    prior = ones(numClasses, 1);
+    multiplier = numClasses / length(countslice);
+    %multiplier = 1 / length(countslice);
+    votes = histc(countslice, [1:numClasses]);
 
+    alpha = prior + multiplier * votes;
 end

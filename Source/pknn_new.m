@@ -79,15 +79,13 @@ while(true)
     [pred_query prob_query]=pknnPredict(Ktr_qr(qr_idx, trn_idx), model_pknn);
 
     %get rf votes for every query point
-    counts=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, lbl_tr_qr, m, params.al_numqr);
+    counts=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, lbl_tr_qr, m);
     %convert counts to alphas, normalize it somehow?
 
 
 
-    cd embedded %TODO _REALLY_ UGLY!
-    (counts)
+    new_idx = getIndices(counts, marginalProbs, params.al_numqr,m)	 
 
-    cd ..
     %add the selected indices to the added_idx set and the training set (trn_idx)
     added_idx=[added_idx qr_idx(new_idx)]; 
     trn_idx=[trn_idx qr_idx(new_idx)];

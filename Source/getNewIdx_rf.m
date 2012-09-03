@@ -1,4 +1,4 @@
-function counts = getNewIdx_rf(Kernel, trainingIndices, queryIndices, labels, numClasses, al_num)
+function counts = getNewIdx_rf(Kernel, trainingIndices, queryIndices, labels, numClasses)
 cd 'embedded'
 %TODO: rfpred doesn't have to return al_num valid indices, so perhaps filter out the invalid ones
 %Passing Matlab data (hopefully read-only, should be at least if I understood it correctly...) to C code, which then passes it to lua.
