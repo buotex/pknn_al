@@ -69,17 +69,29 @@ while(true)
     end
 
 
+    %calculate marginal densities
+      
+    queries = Ktr_qr(trn_idx, qr_idx);
+    [labels, model, loglikely] = emgm(queries, length(trn_idx));
+    marginalProbs = model.weight(labels);
 
     %Compute probabilities of query points belonging to each class
     [pred_query prob_query]=pknnPredict(Ktr_qr(qr_idx, trn_idx), model_pknn);
-    
-    %Select indices to be labeled 
-    new_idx=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, params.al_numqr);
-    
+
+    %get rf votes for every query point
+    counts=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, lbl_tr_qr, m, params.al_numqr);
+    %convert counts to alphas, normalize it somehow?
+
+
+
+    cd embedded %TODO _REALLY_ UGLY!
+    (counts)
+
+    cd ..
     %add the selected indices to the added_idx set and the training set (trn_idx)
     added_idx=[added_idx qr_idx(new_idx)]; 
     trn_idx=[trn_idx qr_idx(new_idx)];
-    
+
     model_pknn.zc=[model_pknn.zc;zeros(length(new_idx),m)];
     qr_idx(new_idx)=[];
 end

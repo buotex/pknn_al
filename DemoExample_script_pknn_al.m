@@ -10,8 +10,8 @@ addpath Source
 %Create K for a kernel n x n
 %Create lbl for labels n x 1
 
-addpath ../../..
-addpath ../../../cal101-ker-15-1
+addpath ~/data/cal101
+addpath ~/data/cal101/cal101-ker-15-1
 load el2_gb.mat
 K = matrix;
 %load echi2_phowColor_L0.mat
@@ -37,8 +37,9 @@ lbl = trainImageClasses';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %numclass=length(unique(lbl));
-numclass = 20
-initN=2; %Number of initial labeled examples
+numclass = 40
+initN=1; %Number of initial labeled examples
+initNN=10;
 poolN=15; %Number of examples in the pool, remaining are "hold-out" examples and are used for testing accuracy
 
 numrun=1; %Average over 20 runs
@@ -47,9 +48,7 @@ m=numclass;
 params=SetDefaultArguments(numclass); %Set default parameters
 params.thres=1e-4;
 params.al_round=5; %Set number of active learning rounds to be 10
-params.al_numqr=20; %Set number of examples to be labeled in each round to be  2
-
-
+params.al_numqr=3; %Set number of examples to be labeled in each round to be  2
 
 
 
@@ -76,7 +75,14 @@ for run=1:numrun
         test_idx(length(test_idx)+1:length(test_idx)+i_len-poolN)=i_idx(rp(poolN+1:i_len));
     end
 
-    
+%    trn_idx = randi(length(lbl), 1,initNN);
+%    qr_idx = linspace(1,0.5 * length(lbl), 0.5 * length(lbl));
+%    test_idx = linspace(1,length(lbl), length(lbl));
+%    test_idx(trn_idx) = [];
+%    test_idx(qr_idx)  = [];
+%
+
+
     trn_idx_pknn_rand=trn_idx;
     qr_idx_pknn_rand=qr_idx;
     test_idx_pknn_rand=test_idx;
@@ -88,12 +94,12 @@ for run=1:numrun
     trn_idx_pknn_al=trn_idx; %Initial training index
     qr_idx_pknn_al=qr_idx; %Initial query set (from which examples to be labeled are selected)
     test_idx_pknn_al=test_idx; %Initial test set
-    
+
     params.al_type=1; %Use selection via active learning method 1 (See getNewIdx_active)
     fprintf('\n pKNN+AL   Run%d\n',run);
     acc_pknn_al(:,run)=pknn_active(K([trn_idx_pknn_al qr_idx_pknn_al],[trn_idx_pknn_al qr_idx_pknn_al]),K(test_idx_pknn_al, [trn_idx_pknn_al qr_idx_pknn_al]), 1:length(trn_idx_pknn_al),length(trn_idx_pknn_al)+(1:length(qr_idx_pknn_al)) , lbl([trn_idx_pknn_al qr_idx_pknn_al]), lbl(test_idx_pknn_al), numclass,params);
 
- 
+
     %Active learning with random selection
     trn_idx_pknn_rand=trn_idx;
     qr_idx_pknn_rand=qr_idx;
@@ -104,11 +110,13 @@ for run=1:numrun
 
 end
 
-figure;
-plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2),'r-o');
+h = figure('Visible', 'off');
+plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2),'r-o');
 hold;
 plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rand(:,:),2),'m--x');
 xlabel('Number of Labeled Examples Added');
 ylabel('Accuracy');
 title(sprintf('Acc. vs. Number of Labeled Examples (%d classes)',numclass));
-legend('pKNN+AL','pKNN+Rand');
+legend('pKNN+rf','pKNN+Rand');
+print(h,'-dpng', 'results.png')
+

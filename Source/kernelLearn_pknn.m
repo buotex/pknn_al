@@ -49,6 +49,8 @@ end
 
 
 K0v=K0*v;
+%size(v)
+%sleep(5)
 vK0v=sum(v.*K0v);
 vK0v=vK0v';
 K0z=K0*zc;
