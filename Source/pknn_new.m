@@ -72,7 +72,7 @@ while(true)
     %calculate marginal densities
       
     queries = Ktr_qr(trn_idx, qr_idx);
-    [labels, model, loglikely] = emgm(queries, length(trn_idx));
+    [labels, model, loglikely] = emgm(queries, floor(sqrt(length(trn_idx))));
     marginalProbs = model.weight(labels);
 
     %Compute probabilities of query points belonging to each class

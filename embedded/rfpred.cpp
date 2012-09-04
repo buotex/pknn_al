@@ -61,12 +61,15 @@ bool writeMatrix(double * mat, int rows, int cols, const char * filename) {
 }
 
 
+CursorLine     xxx term=underline cterm=underline guibg=#2d2d2d
+CursorLine     xxx term=underline cterm=underline guibg=#2d2d2d
+
 void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
   if (nlhs != 1 || nrhs != 6) { 
 	  mexErrMsgTxt("rfpred.cpp: wrong number of input or output arguments");
   }
-  std::cout << "nlhs: " << nlhs << " nrhs: " << nrhs << std::endl;
+  std::cout << "startMex" << std::endl;
   /*
      setbuf(stdout, NULL); //for debugging
 
@@ -97,8 +100,8 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
   labelData = mxGetPr(prhs[3]);
   labelN = mxGetM(prhs[3]) * mxGetN(prhs[3]); //in case it's transposed
 
-  writeMatrix(kernelData, kernelN, kernelN, "kernel");
-  writeMatrix(labelData, labelN, 1, "labels");
+  //writeMatrix(kernelData, kernelN, kernelN, "kernel");
+  //writeMatrix(labelData, labelN, 1, "labels");
   
   numClasses =*(mxGetPr(prhs[4]));
 
@@ -120,9 +123,9 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
       trnN,
       queIndData,
       queN,
-      numRuns,
       iout
       );
+  std::cout << "endMex" << std::endl;
 }
 
 /* Current Modus Operandi:

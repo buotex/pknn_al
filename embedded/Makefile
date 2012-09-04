@@ -4,7 +4,7 @@ MEXSUFFIX  = mexglx
 all : rfpred.$(MEXSUFFIX) testrf
 #all : testrf
 #MATLABHOME = /cs/local/generic/lib/pkg/matlab-7.3
-CFLAGS     = -fPIC  -DMATLAB_MEX_FILE  #-DMX_COMPAT_32 \
+CFLAGS     = -fPIC  -O2 -DMATLAB_MEX_FILE  #-DMX_COMPAT_32 \
                
 LDFLAGS    = -shared -rdynamic
 
