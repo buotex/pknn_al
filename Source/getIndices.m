@@ -8,7 +8,7 @@ function retIndices = getIndices(counts, marginalProbs, numAl, numClasses)
 end
 function tuv = tuvCalc(counts, marginalProbs, numClasses)
 
-    samples = 1000;
+    samples = 100;
     numQueries = size(counts, 2);
     tuv = zeros(numQueries, 1);
     for i = 1:numQueries

@@ -37,21 +37,22 @@ lbl = trainImageClasses';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %numclass=length(unique(lbl));
-numclass = 100
+numclass = 101
 initN=2; %Number of initial labeled examples
 poolN=15; %Number of examples in the pool, remaining are "hold-out" examples and are used for testing accuracy
 
-numrun=1; %Average over 20 runs
+numrun=5; %Average over 20 runs
 n=size(K,2);
 m=numclass;
 params=SetDefaultArguments(numclass); %Set default parameters
 params.thres=1e-4;
-params.al_round=10; %Set number of active learning rounds to be 10
+params.al_round=5; %Set number of active learning rounds to be 10
 params.al_numqr=20; %Set number of examples to be labeled in each round to be  2
 
 
 
 %Initialize Accuracies
+acc_pknn_rf=zeros(params.al_round+1, numrun); %Accuracy for pknn with Active Learning
 acc_pknn_al=zeros(params.al_round+1, numrun); %Accuracy for pknn with Active Learning
 acc_pknn_rand=zeros(params.al_round+1, numrun); %Accuracy for pknn with Random Selection
 
@@ -82,12 +83,13 @@ for run=1:numrun
 %
 
 
-    trn_idx_pknn_rand=trn_idx;
-    qr_idx_pknn_rand=qr_idx;
-    test_idx_pknn_rand=test_idx;
+    trn_idx_pknn_rf=trn_idx;
+    qr_idx_pknn_rf=qr_idx;
+    test_idx_pknn_rf=test_idx;
     params.al_type=0; %Use random selection for active learning
     fprintf('\n pKNN+RF   Run%d\n',run);
-    acc_pknn_rf(:,run)=pknn_new(K([trn_idx_pknn_rand qr_idx_pknn_rand],[trn_idx_pknn_rand qr_idx_pknn_rand]), K(test_idx_pknn_rand, [trn_idx_pknn_rand qr_idx_pknn_rand]), 1:length(trn_idx_pknn_rand), length(trn_idx_pknn_rand)+(1:length(qr_idx_pknn_rand)), lbl([trn_idx_pknn_rand qr_idx_pknn_rand]), lbl(test_idx_pknn_rand), numclass, params);
+    [acc_pknn_rf(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
+
 
     %Active learning with method 1
     trn_idx_pknn_al=trn_idx; %Initial training index
@@ -106,16 +108,21 @@ for run=1:numrun
     params.al_type=0; %Use random selection for active learning
     fprintf('\n pKNN+Rand   Run%d\n',run);
     acc_pknn_rand(:,run)=pknn_active(K([trn_idx_pknn_rand qr_idx_pknn_rand],[trn_idx_pknn_rand qr_idx_pknn_rand]), K(test_idx_pknn_rand, [trn_idx_pknn_rand qr_idx_pknn_rand]), 1:length(trn_idx_pknn_rand), length(trn_idx_pknn_rand)+(1:length(qr_idx_pknn_rand)), lbl([trn_idx_pknn_rand qr_idx_pknn_rand]), lbl(test_idx_pknn_rand), numclass, params);
-
+    
 end
 
 h = figure('Visible', 'off');
 plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2),'r-o');
 hold;
 plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2),'m--x');
+plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rand(:,:),2),'b--x');
 xlabel('Number of Labeled Examples Added');
 ylabel('Accuracy');
 title(sprintf('Acc. vs. Number of Labeled Examples (%d classes)',numclass));
-legend('pKNN+RF','pKNN+Al');
+legend('pKNN+RF','pKNN+Al', 'pKNN+Random Sampling');
 print(h,'-dpng', 'results.png')
+
+
+
+
 

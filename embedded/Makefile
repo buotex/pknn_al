@@ -26,9 +26,12 @@ ARMADILLO_LINK = -larmadillo
 
 rfpred.$(MEXSUFFIX): rfpred.o #impex.o
 	  $(MEX) $(MEXFLAGS) $(LINK) $(LIBS) -output rfpred $^
-rfpred.o: rfpred.cpp randomforest.h
+rfpred.o: rfpred.cpp
 	$(CC) $(CFLAGS) $(INCLUDE) -c $^
 
 
 testrf: testrf.cpp
 	$(CC) -o testrf  $^
+clean:
+	rm *.o
+	rm *.mexa64

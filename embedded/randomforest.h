@@ -1,6 +1,7 @@
 #include <vigra/random_forest.hxx>
 #include <armadillo>
 #include <iostream>
+#include <cstdio>
 #include "stdint.h"
 
 using namespace vigra;
@@ -32,18 +33,22 @@ countVotes(const MultiArrayView<2,double> & kernel, const MultiArrayView<2, doub
         data(k, l) = kernel(trnIndData[k], trnIndData[l]);
         data(k+trnN, l) = kernel(queIndData[randomInt], trnIndData[l]);
       } 
-      labels(k) = fullLabels(trnIndData[k], 0);
+      labels(k) = fullLabels(trnIndData[k]);
       labels(k+trnN) = 0;
 
     }
-    arma::mat test(data.data(),data.shape(0), data.shape(1));
-    //test.print("test");
+    arma::mat test(data.data(),data.shape(0), data.shape(1), false);
+//    test.print("test");
+    if (!test.is_finite()) {
+      printf("NaN in data\n");
+    }
+    //std::cout << "finite" <<  test.is_finite() << std::endl;
 
     RandomForest<> rf(RandomForestOptions().tree_count(1));
 
     visitors::OOB_Error oob_v;
 
-    arma::umat testlabels(labels.data(), labels.shape(0), labels.shape(1));
+    arma::umat testlabels(labels.data(), labels.shape(0), labels.shape(1), false);
     //testlabels.print("testlabels");
 
     rf.learn(data, labels, visitors::create_visitor(oob_v));

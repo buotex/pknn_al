@@ -61,8 +61,6 @@ bool writeMatrix(double * mat, int rows, int cols, const char * filename) {
 }
 
 
-CursorLine     xxx term=underline cterm=underline guibg=#2d2d2d
-CursorLine     xxx term=underline cterm=underline guibg=#2d2d2d
 
 void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
@@ -82,7 +80,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
 
   double * kernelData, * trnIndData, * queIndData, * labelData;
-  int kernelN, trnN, queN, numRuns, labelN, numClasses;
+  int kernelN, trnN, queN, numTrees, labelN, numClasses;
   //Setup phase 
   printf("blub \n");
 
@@ -105,13 +103,13 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
   
   numClasses =*(mxGetPr(prhs[4]));
 
-  numRuns =  *(mxGetPr(prhs[5]));
+  numTrees =  *(mxGetPr(prhs[5]));
 
   MultiArrayView<2, double> wkernel = wrapArray(kernelData, kernelN, kernelN); 
   MultiArrayView<2, double> wlabels = wrapArray(labelData, labelN, 1);
   //RandomForest<> forest = 
   //createForests(wkernel, wlabels, trnIndData, trnN, queIndData, queN);
-  plhs[0] = mxCreateNumericMatrix(numRuns, queN, mxUINT32_CLASS, mxREAL);
+  plhs[0] = mxCreateNumericMatrix(numTrees, queN, mxUINT32_CLASS, mxREAL);
   uint32_t * iout;
   iout = (uint32_t *) mxGetData(plhs[0]);
 
@@ -123,6 +121,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
       trnN,
       queIndData,
       queN,
+      numTrees,
       iout
       );
   std::cout << "endMex" << std::endl;

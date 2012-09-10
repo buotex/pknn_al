@@ -72,8 +72,21 @@ while(true)
     %calculate marginal densities
       
     queries = Ktr_qr(trn_idx, qr_idx);
-    [labels, model, loglikely] = emgm(queries, floor(sqrt(length(trn_idx))));
-    marginalProbs = model.weight(labels);
+    %[labels, model, loglikely] = emgm(queries, floor(sqrt(length(trn_idx))));
+    [labels, model, loglikely] = emgm(queries, m);
+    %old variant of marginalProbs
+    marginalProbs = model.weight(labels)
+    %marginalProbs = ones(1,length(labels));
+    
+    %another variant of marginalProbs
+    %marginalProbs = zeros(1,length(labels));
+    for i = 1:size(model,2)
+            indices = [labels == i];
+    %        model.mu(:,i)
+    %        model.Sigma(:,:,i)
+            testpdf = mvnpdf(queries(:,indices)', model.mu(:,i)', model.Sigma(:,:,i)');
+%	    marginalProbs(indices) = testpdf;
+    end
 
     %Compute probabilities of query points belonging to each class
     [pred_query prob_query]=pknnPredict(Ktr_qr(qr_idx, trn_idx), model_pknn);
@@ -84,11 +97,14 @@ while(true)
 
 
 
-    new_idx = getIndices(counts, marginalProbs, params.al_numqr,m)	 
+    new_idx = getIndices(counts, marginalProbs, params.al_numqr,m);
 
     %add the selected indices to the added_idx set and the training set (trn_idx)
     added_idx=[added_idx qr_idx(new_idx)]; 
     trn_idx=[trn_idx qr_idx(new_idx)];
+    
+    histc(lbl_tr_qr(trn_idx), [1:m]) 
+
 
     model_pknn.zc=[model_pknn.zc;zeros(length(new_idx),m)];
     qr_idx(new_idx)=[];
