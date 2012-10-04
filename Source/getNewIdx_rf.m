@@ -1,4 +1,4 @@
-function counts = getNewIdx_rf(Kernel, trainingIndices, queryIndices, labels, numClasses)
+function [counts, trnSampleImportance, testVotes] = getNewIdx_rf(Kernel, trainingIndices, queryIndices, labels, numClasses, testData)
 cd 'embedded'
 %TODO: rfpred doesn't have to return al_num valid indices, so perhaps filter out the invalid ones
 %Passing Matlab data (hopefully read-only, should be at least if I understood it correctly...) to C code, which then passes it to lua.
@@ -6,12 +6,19 @@ cd 'embedded'
 %The kernel matrix, with _all_ entries (which means training and candidate data), the indices currently used for the training data and the indices of the kernel entries used for the query data.
 %The question stands: How does one use the kernel here?
 % -> The random forest creation is dependent on that!
-numTrees = 100;
+numTrees = 400;
 %counts format: 
 %one Row of data for every tree,
 %numTrees x #queryIndices matrix, containing
 %response-indices.
-counts = rfpred(Kernel, trainingIndices, queryIndices, labels, numClasses ,numTrees);
+if exist('testData') 
+[counts, trnSampleImportance, testVotes] = rfpred(Kernel, trainingIndices, queryIndices, labels, numClasses ,numTrees, testData);
+else
+[counts, trnSampleImportance] = rfpred(Kernel, trainingIndices, queryIndices, labels, numClasses ,numTrees);
+
+end
+counts = counts / numTrees;
+%trnSampleImportance
 
 %new_idx = new_idx([new_idx > 0])
 cd '..'

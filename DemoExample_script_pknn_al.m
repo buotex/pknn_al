@@ -14,13 +14,13 @@ addpath ~/data/cal101
 addpath ~/data/cal101/cal101-ker-15-1
 load el2_gb.mat
 K = matrix;
-%load echi2_phowColor_L0.mat
-%K = K + matrix;
-%load echi2_phowColor_L1.mat
-%K = K + matrix;
-%load echi2_phowColor_L2.mat
-%K = K + matrix;
-%K = K / 4;
+load echi2_phowColor_L0.mat
+K = K + matrix;
+load echi2_phowColor_L1.mat
+K = K + matrix;
+load echi2_phowColor_L2.mat
+K = K + matrix;
+K = K / 4;
 
 
 
@@ -37,22 +37,23 @@ lbl = trainImageClasses';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %numclass=length(unique(lbl));
-numclass = 101
-initN=2; %Number of initial labeled examples
+numclass = 6
+initN=1; %Number of initial labeled examples
 poolN=15; %Number of examples in the pool, remaining are "hold-out" examples and are used for testing accuracy
 
-numrun=5; %Average over 20 runs
+numrun=20; %Average over 20 runs
 n=size(K,2);
 m=numclass;
 params=SetDefaultArguments(numclass); %Set default parameters
 params.thres=1e-4;
-params.al_round=5; %Set number of active learning rounds to be 10
-params.al_numqr=20; %Set number of examples to be labeled in each round to be  2
-
+params.al_round=10; %Set number of active learning rounds to be 10
+params.al_numqr=1; %Set number of examples to be labeled in each round to be  2
+rand('seed',1)
 
 
 %Initialize Accuracies
 acc_pknn_rf=zeros(params.al_round+1, numrun); %Accuracy for pknn with Active Learning
+acc_pknn_rf2=zeros(params.al_round+1, numrun); %Accuracy for pknn with Active Learning
 acc_pknn_al=zeros(params.al_round+1, numrun); %Accuracy for pknn with Active Learning
 acc_pknn_rand=zeros(params.al_round+1, numrun); %Accuracy for pknn with Random Selection
 
@@ -90,6 +91,12 @@ for run=1:numrun
     fprintf('\n pKNN+RF   Run%d\n',run);
     [acc_pknn_rf(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
 
+    trn_idx_pknn_rf=trn_idx;
+    qr_idx_pknn_rf=qr_idx;
+    test_idx_pknn_rf=test_idx;
+    params.al_type=0; %Use random selection for active learning
+    fprintf('\n pKNN+RF2   Run%d\n',run);
+    [acc_pknn_rf2(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new2(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
 
     %Active learning with method 1
     trn_idx_pknn_al=trn_idx; %Initial training index
@@ -112,14 +119,20 @@ for run=1:numrun
 end
 
 h = figure('Visible', 'off');
-plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2),'r-o');
+
+%plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2),'r-o');
+errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2), std(100 * acc_pknn_rf(:,:),0,2),'r-o');
 hold;
-plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2),'m--x');
-plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rand(:,:),2),'b--x');
+%plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf2(:,:),2),'b--x');
+errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf2(:,:),2), std(100 * acc_pknn_rf2(:,:),0,2),'b--x');
+%plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2),'m--x');
+errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2), std(100 * acc_pknn_al(:,:),0,2),'m--x');
+%plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rand(:,:),2),'b--x');
 xlabel('Number of Labeled Examples Added');
 ylabel('Accuracy');
 title(sprintf('Acc. vs. Number of Labeled Examples (%d classes)',numclass));
-legend('pKNN+RF','pKNN+Al', 'pKNN+Random Sampling');
+%legend('pKNN+RF','RandomForest', 'pKNN+Al', 'pKNN+Random Sampling', 'Location', 'NorthWest');
+legend('pKNN+RF','pure-rf','pKNN+AL', 'Location', 'NorthWest');
 print(h,'-dpng', 'results.png')
 
 

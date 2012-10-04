@@ -1,10 +1,12 @@
 package.path = package.path .. ";/home/bxu/code/toolbox/datatypes/?.lua"
 package.path = package.path .. ";/home/bxu/code/toolbox/?.lua"
 local ffi = require("ffi")
-local narray = require("ljarray.array")
-local dtools = require("debugtools.debug")
+local Dtools = require("debugtools.debug")
+local Matrix = require("ljmatrix.densematrix")
+local RandomForest = require("randomforest.rf")
+RandomForest.Debug = false
 
-blub = 5
+
 --Documentation: 
 --This lua function is passed all the arguments from its C parent function (with
 --a bit of parsing):
@@ -18,62 +20,75 @@ blub = 5
 
 --Arguments:
 --numTrees
-local getIndices = function(kernel, training, query, labels, numClasses, ret, numRuns)
+local getCounts = function(kernel, trainingIndices, queryIndices, labels, numClasses, numTrees, returnData, featureIdCounts, testData, testVotes)
   
+  local rf = RandomForest.create(numTrees)
 
-  local numTrees = 10
-  local forests = {}
-  for i = 1, numRuns do
-    --createRandomForest()
-    --pick _all_ trainingData
-    --pack data together
+  local defaultData = kernel(trainingIndices, trainingIndices)
+  local defaultLabels = labels(trainingIndices, "all")
+  local bagSize = math.floor(defaultData.n_rows * 2)
+  local rfOptions = { bootstrapper = 
+  RandomForest.policies.queryBootstrapper(defaultData, defaultLabels, bagSize),
+
+  stopPolicy = RandomForest.policies.stopBinary(),
+  splitPolicy = RandomForest.policies.oblique(RandomForest.heuristics.gini)
+}
+  print("options finished")
+
+  rf:learn(kernel("all", trainingIndices), labels("all", "all"), rfOptions) 
+--count ids used for splitting
+  print("learning finished")
+  --Dtools.printtable(trainingIndices)
+  --Dtools.waitInput()
+  local accumulator = rf:predict(kernel(queryIndices, trainingIndices))
+  print("prediction finished")
+  --what are we even doing here? Count how often features are used, to get a
+  --ranking
+  --Shouldn't that totally break with different featureIDs?
+  
+  --Doesn't do too much-------------------------------------------------------
+  --Start  Block FeatureIdCounts
+  --[[
+  local fIdCounts = rf:visitAllNodes(RandomForest.accumulators.featureIdCounter)
+
+  local index = 0
+  --k,v :
+  for k,v in pairs(fIdCounts.results) do
+    featureIdCounts.data[index] = trainingIndices[k]
+    featureIdCounts.data[featureIdCounts.n_cols + index] = v
+    index = index + 1
+  end
+  ]]--
+  --End Block FeatureIdCounts
+  --Dummy:
+  featureIdCounts:view("all", "all"):set(1)
+  ------------------------------------------------------------------------------
+  --Dtools.printtable(accumulator.results[3])
+  --Dtools.waitInput()
 
 
-    forests[i] = tree.create({n_trees = numTrees, n_classes = numClasses})
-    local numelem = training.n * 2
-    local numdim  = training.n
+  returnData:view("all", "all"):set(0)
 
-    --define data and labels
-    local testdata = narray.create({numelem, numdim}, narray.float64)
-    local testlabels   = narray.create({numelem}, narray.int8)
-    --fill up testdata and labels
-    for j = 0, training.n-1 do
-      local index = training.data[j]
-      for k = 0, numdim - 1 do
-        --not caching, just for readability
-        local singleIndex = index * kernel.n + k
-        local val = kernel.data[singleIndex]
-        testdata:set2(j,k,val)
 
+
+  for i = 0, #accumulator.results do
+    for k,v in pairs(accumulator.results[i]) do
+      if type(k) == "number" and k > 0 then
+        returnData.data[returnData:index(k-1, i)] = v
       end
-
-      local randomIndex = query.data[math.random(query.n-1)]
-      for k = 0, numdim - 1 do
-        local singleIndex = randomIndex * kernel.n + k
-        local val = kernel.data[singleIndex]
-        testdata:set2(j+training.n, k, val)
-      end
-
-      testlabels:set1(j, labels.data[index])
-      testlabels:set1(j + training.n, 0)
     end
-    --dtools.printarray(testdata)
-    --dtools.printarray(testlabels)
+  end
 
+  if testData and testVotes then
+    local accumulator = rf:predict(testData("all", trainingIndices), {accumulator = RandomForest.accumulators.singleVoter})
+    print("this worked out")
+    for i= 0, #accumulator.results do
+      testVotes.data[i] = accumulator.results[i].label
+    end
+  end
 
-
-
-    forests[i]:learn( testdata, testlabels )
-
-
-
-  end 
-  --pick random samples
-
-
-
+  return 
 end
-
 
 
 wrapper = function(
@@ -82,8 +97,12 @@ wrapper = function(
   vqueIndData, queN,
   vlabelData, labelN,
   numClasses,
-  numAl,
-  vretIndices
+  numTrees,
+  vretData,
+  vfeatureIdCounts,
+  vtestData,
+  testN,
+  vvotesData
   )
   math.randomseed(os.time())
   local dummy = math.random()
@@ -91,24 +110,31 @@ wrapper = function(
 
   --safety: Fill up return with 1, so we don't crash terribly
 
-  print("blub")
   local kernelData = ffi.new("double *", vkernelData)
   local trnIndData = ffi.new("double *", vtrnIndData)
   local queIndData = ffi.new("double *", vqueIndData)
   local labelData = ffi.new("double *", vlabelData)
-  local retIndices = ffi.new("uint64_t *", vretIndices)
-  print(kernelN, trnN, queN, numAl)
-  local kernel = { data = kernelData, n = kernelN }
-  local training = { data = trnIndData, n = trnN }
-  local query = { data = queIndData, n = queN }
-  local labels = { data = labelData, n = labelN}
-  local ret = { data = retIndices, n = numAl }
-
-  for i = 0, numAl - 1 do
-    ret.data[i] = 1
+  local retData = ffi.new("double *", vretData)
+  local featureIdCountsData = ffi.new("double *", vfeatureIdCounts)
+  local testDataData = ffi.new("double* ", vtestData)
+  local votesData    = ffi.new("double* ", vvotesData)
+  local testData, testVotes
+  if vtestData then
+    testData = Matrix.mat(testN, trnN, testDataData)
+    testVotes = Matrix.mat(1, testN, votesData) --transpose because of matlab
   end
-  local numTrees = 1
-  getIndices(kernel, training, query, labels, numClasses, ret, numTrees)
+
+  local kernel = Matrix.mat(kernelN, kernelN, kernelData)
+  local function shiftM1(x) return x - 1 end
+  local test = Matrix.mat(trnN, 1, trnIndData)
+  local training = Matrix.mat(trnN, 1, trnIndData):toTable(shiftM1)
+  local query    = Matrix.mat(queN, 1, queIndData):toTable(shiftM1)
+  local labels   = Matrix.mat(labelN, 1, labelData)
+  local ret      = Matrix.mat(numClasses, queN, retData)
+  local featureIdCounts = Matrix.mat(2, trnN, featureIdCountsData) --transpose because of matlab
+  print("initialization finished")
+  --local numTrees = 1
+  getCounts(kernel, training, query, labels, numClasses, numTrees, ret, featureIdCounts, testData, testVotes)
 
   return 
 end

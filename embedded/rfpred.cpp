@@ -60,7 +60,7 @@ bool writeMatrix(double * mat, int rows, int cols, const char * filename) {
   arma::diskio::save_arma_binary(wrapper, filename);
 }
 
-
+/*
 
 void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
@@ -68,7 +68,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 	  mexErrMsgTxt("rfpred.cpp: wrong number of input or output arguments");
   }
   std::cout << "startMex" << std::endl;
-  /*
+  
      setbuf(stdout, NULL); //for debugging
 
   //matlab-part 
@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
   getcwd(buf);
   //end matlab part
   printf("%s \n", buf);
-  */
+  
 
 
   double * kernelData, * trnIndData, * queIndData, * labelData;
@@ -126,7 +126,7 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
       );
   std::cout << "endMex" << std::endl;
 }
-
+*/
 /* Current Modus Operandi:
  * Matlab passes the Kernel matrix, along with two index-sets to the C-function
  * mexFunction.
@@ -153,89 +153,113 @@ void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
  * */
 
 
-/*
-   void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
-   if (nlhs != 1 || nrhs != 6) { 
-   mexErrMsgTxt("rfpred.cpp: wrong number of input or output arguments");
-   }
-   std::cout << "nlhs: " << nlhs << " nrhs: " << nrhs << std::endl;
+void mexFunction(int nlhs, mxArray * plhs[], int nrhs, const mxArray* prhs[]) {
 
-//  setbuf(stdout, NULL); //for debugging
+  if (( nlhs != 2 && nlhs != 3) || (nrhs != 6 && nrhs != 7) ) { 
+    mexErrMsgTxt("rfpred.cpp: wrong number of input or output arguments");
+  }
+  std::cout << "nlhs: " << nlhs << " nrhs: " << nrhs << std::endl;
 
-//matlab-part 
-//char * buf[100];
-//getcwd(buf);
-//end matlab part
-//printf("%s \n", buf);
+  //  setbuf(stdout, NULL); //for debugging
 
-
-//lua_State * L = getLuaState();
-lua_State * L = lua_open();
-luaL_openlibs(L);
-luaL_dofile(L,"foo.lua");
-
-lua_getglobal(L, "wrapper");
+  //matlab-part 
+  //char * buf[100];
+  //getcwd(buf);
+  //end matlab part
+  //printf("%s \n", buf);
 
 
+  //lua_State * L = getLuaState();
+  lua_State * L = lua_open();
+  luaL_openlibs(L);
+  luaL_dofile(L,"foo.lua");
 
-double * kernelData, * trnIndData, * queIndData, * labelData;
-double kernelN, trnN, queN, numAl, labelN, numClasses;
-//Setup phase 
-printf("blub \n");
+  lua_getglobal(L, "wrapper");
 
-kernelData = mxGetPr(prhs[0]);
-lua_pushlightuserdata(L, (void *) kernelData);
-kernelN = mxGetM(prhs[0]);
-lua_pushnumber(L, kernelN);
 
-trnIndData = mxGetPr(prhs[1]);
-lua_pushlightuserdata(L, (void *) trnIndData);
-trnN   = mxGetM(prhs[1]) * mxGetN(prhs[1]); //in case it's transposed
-lua_pushnumber(L, trnN);
 
-queIndData = mxGetPr(prhs[2]);
-lua_pushlightuserdata(L, (void *) queIndData);
-queN   = mxGetM(prhs[2]) * mxGetN(prhs[2]); //in case it's transposed
-lua_pushnumber(L, queN);
+  double * kernelData, * trnIndData, * queIndData, * labelData;
+  double kernelN, trnN, queN, numTrees, labelN, numClasses;
+  double * testData, testN;
+  //Setup phase 
 
-labelData = mxGetPr(prhs[3]);
-lua_pushlightuserdata(L, (void *) labelData);
-labelN = mxGetM(prhs[3]) * mxGetN(prhs[3]); //in case it's transposed
-lua_pushnumber(L, labelN);
+  kernelData = mxGetPr(prhs[0]);
+  lua_pushlightuserdata(L, (void *) kernelData);
+  kernelN = mxGetM(prhs[0]);
+  lua_pushnumber(L, kernelN);
 
-writeMatrix(kernelData, kernelN, kernelN, "kernel");
-writeMatrix(labelData, labelN, 1, "labels");
+  trnIndData = mxGetPr(prhs[1]);
+  lua_pushlightuserdata(L, (void *) trnIndData);
+  trnN   = mxGetM(prhs[1]) * mxGetN(prhs[1]); //in case it's transposed
+  lua_pushnumber(L, trnN);
 
-numClasses =*(mxGetPr(prhs[4]));
-lua_pushnumber(L, numClasses);
+  queIndData = mxGetPr(prhs[2]);
+  lua_pushlightuserdata(L, (void *) queIndData);
+  queN   = mxGetM(prhs[2]) * mxGetN(prhs[2]); //in case it's transposed
+  lua_pushnumber(L, queN);
 
-numAl =  *(mxGetPr(prhs[5]));
+  labelData = mxGetPr(prhs[3]);
+  lua_pushlightuserdata(L, (void *) labelData);
+  labelN = mxGetM(prhs[3]) * mxGetN(prhs[3]); //in case it's transposed
+  lua_pushnumber(L, labelN);
 
-lua_pushnumber(L, numAl);
+//writeMatrix(kernelData, kernelN, kernelN, "kernel");
+//writeMatrix(labelData, labelN, 1, "labels");
 
-plhs[0] = mxCreateNumericMatrix(numAl, 1, mxUINT64_CLASS, mxREAL);
-uint64_t * iout;
-iout = (uint64_t *) mxGetData(plhs[0]);
+  numClasses =*(mxGetPr(prhs[4]));
+  lua_pushnumber(L, numClasses);
 
-lua_pushlightuserdata(L, (void *) iout);
+  numTrees =  *(mxGetPr(prhs[5]));
 
-stackDump(L);
-//second argument: number of elements on stack that should be used
-//1 - function, 2 + 2  +2 + 2 - data, 1 - numAl
-int error = lua_pcall(L,11,0, 0);
+  lua_pushnumber(L, numTrees);
 
-if (error) {
-  printf("ERROR ERROR\n");
-  printf("%s \n", lua_tostring(L, -1));
-  lua_pop(L,1);
+  //plhs[0] = mxCreateNumericMatrix(queN, numClasses, mxUINT64_CLASS, mxREAL);
+  plhs[0] = mxCreateNumericMatrix(queN, numClasses, mxDOUBLE_CLASS, mxREAL);
+  double * iout;
+  iout = (double *) mxGetData(plhs[0]);
+
+  lua_pushlightuserdata(L, (void *) iout);
+
+  plhs[1] = mxCreateNumericMatrix(trnN, 2, mxDOUBLE_CLASS, mxREAL);
+  double * iout2;
+  iout2 = (double *) mxGetData(plhs[1]);
+
+
+
+  lua_pushlightuserdata(L, (void *) iout2);
+  //second argument: number of elements on stack that should be used
+  //1 - function, 2 + 2  +2 + 2 - data, 1 - numAl
+  
+  
+  int num_args = 12;
+if (nrhs == 7 && nlhs == 3)  {
+  testData = mxGetPr(prhs[6]);
+  lua_pushlightuserdata(L, (void *) testData);
+  testN = mxGetN(prhs[6]); //in case it's transposed
+  lua_pushnumber(L, testN);
+  plhs[2] = mxCreateNumericMatrix(testN, 1, mxDOUBLE_CLASS, mxREAL);
+  double * iout3;
+  iout3 = (double *) mxGetData(plhs[2]);
+  lua_pushlightuserdata(L, (void *) iout3);
+  num_args += 3;
+}
+
+  stackDump(L);
+  //sleep(1000);
+  //std::cin.get();
+
+  int error = lua_pcall(L,num_args,0, 0);
+
+  if (error) {
+    printf("ERROR ERROR\n");
+    printf("%s \n", lua_tostring(L, -1));
+    lua_pop(L,1);
+    lua_close(L);
+    return; 
+  }
   lua_close(L);
-  return; 
+  //lua_close(L);//TODO: Potential memory leak, but the c file is kept in memory
+  //as well, so whatever I guess.
 }
-double test = (double)lua_tonumber(L, -1);
-lua_pop(L,1); 
-lua_close(L);
-//lua_close(L);//TODO: Potential memory leak, but the c file is kept in memory
-//as well, so whatever I guess.
-}
-*/
+

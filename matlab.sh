@@ -2,5 +2,6 @@
 #make
 #cd ../
 #matlab -nojvm -nodisplay -nosplash < DemoExample_script_pknn_al.m
-matlab -nodisplay -nosplash 
+LD_PRELOAD=/usr/local/lib64/libarmadillo.so  matlab -nodisplay -nosplash 
+
 #< DemoExample_script_pknn_al.m

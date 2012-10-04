@@ -56,6 +56,7 @@ while(true)
     
     %Predict using pKNN classifier
     pred_test=pknnPredict(Ktest(:,trn_idx), model_pknn);
+    size(pred_test)
     
     %Compute accuracy of pKNN classifier over test set
     acc(al)=length(find(pred_test==lbl_test))/num_test;
@@ -71,41 +72,50 @@ while(true)
 
     %calculate marginal densities
       
-    queries = Ktr_qr(trn_idx, qr_idx);
     %[labels, model, loglikely] = emgm(queries, floor(sqrt(length(trn_idx))));
-    [labels, model, loglikely] = emgm(queries, m);
-    %old variant of marginalProbs
-    marginalProbs = model.weight(labels)
     %marginalProbs = ones(1,length(labels));
     
     %another variant of marginalProbs
     %marginalProbs = zeros(1,length(labels));
-    for i = 1:size(model,2)
-            indices = [labels == i];
+    %for i = 1:size(model,2)
+    %        indices = [labels == i];
     %        model.mu(:,i)
     %        model.Sigma(:,:,i)
-            testpdf = mvnpdf(queries(:,indices)', model.mu(:,i)', model.Sigma(:,:,i)');
-%	    marginalProbs(indices) = testpdf;
-    end
+    %        testpdf = mvnpdf(queries(:,indices)', model.mu(:,i)', model.Sigma(:,:,i)');
+%	  %  marginalProbs(indices) = testpdf;
+    %end
 
     %Compute probabilities of query points belonging to each class
-    [pred_query prob_query]=pknnPredict(Ktr_qr(qr_idx, trn_idx), model_pknn);
+    %[pred_query prob_query]=pknnPredict(Ktr_qr(qr_idx, trn_idx), model_pknn);
 
     %get rf votes for every query point
-    counts=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, lbl_tr_qr, m);
+    [counts, trnSampleImportance]=getNewIdx_rf(Ktr_qr, trn_idx, qr_idx, lbl_tr_qr, m);
     %convert counts to alphas, normalize it somehow?
 
 
+    %trnSampleImportance = sortrows(trnSampleImportance,-2);
+
+    %    using only the some dimensions
+    %    arginalProbs = sum(Ktr_qr(qr_idx, marginalDimensions), 2)
+
+    %    weighted version
+    %marginalProbs = Ktr_qr(qr_idx, marginalDimensions) * trnSampleImportance(:,2) 
+    %
+    marginalDimensions = trnSampleImportance(:, 1) + 1;
+    queries = Ktr_qr(marginalDimensions, qr_idx);
+
+    GMFIT = gmdistribution.fit(queries',length(marginalDimensions), 'CovType', 'diagonal', 'SharedCov', true);
+    marginalProbs = GMFIT.pdf(queries');
+
 
     new_idx = getIndices(counts, marginalProbs, params.al_numqr,m);
-
     %add the selected indices to the added_idx set and the training set (trn_idx)
     added_idx=[added_idx qr_idx(new_idx)]; 
     trn_idx=[trn_idx qr_idx(new_idx)];
-    
-    histc(lbl_tr_qr(trn_idx), [1:m]) 
+
+    histc(lbl_tr_qr(trn_idx), [1:m]) ;
 
 
     model_pknn.zc=[model_pknn.zc;zeros(length(new_idx),m)];
     qr_idx(new_idx)=[];
-end
+  end
