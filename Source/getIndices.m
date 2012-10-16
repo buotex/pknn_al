@@ -15,7 +15,6 @@ function tuv = tuvCalc(counts, marginalProbs, numClasses)
 	for i = 1:numQueries
 		alpha = convert(counts(i,:), numClasses);
 		[p1,p2] = dirich(alpha, samples);
-		p2 = max(p2);
 		tuv(i) = marginalProbs(i) * (p1 - p2);
 	end
 
@@ -24,7 +23,7 @@ end
 
 function alpha = convert(countslice, numClasses)
 
-	prior = ones(1, numClasses);
+	prior = 1/numClasses * ones(1, numClasses);
 	%multiplier = numClasses / length(countslice);
 	multiplier = numClasses;
 	%multiplier = 1 / length(countslice);
