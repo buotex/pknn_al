@@ -19,9 +19,9 @@ double p2;
 p_struct createDirich(std::vector<double> alpha, std::size_t numSamples) {
   arma::mat R(numSamples, alpha.size()); //careful because of fortran <-> c-order!
   typedef std::gamma_distribution<double> Distribution;
+  std::default_random_engine rSeedEngine_;
   for (std::size_t i = 0; i < alpha.size(); ++i) {
-    std::default_random_engine rSeedEngine_;
-    auto generator = std::bind(Distribution(alpha[i]), rSeedEngine_);
+    auto generator = std::bind(Distribution(alpha[i]), std::ref(rSeedEngine_));
     std::generate(R.begin() + numSamples * i, R.begin() + numSamples * (i + 1), generator); 
 
   }
