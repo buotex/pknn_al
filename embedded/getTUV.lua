@@ -15,10 +15,10 @@ double p2;
 p_struct createDirich(double * alpha, size_t length, size_t numSamples); 
 p_struct createOther(double * alpha, size_t length, size_t numSamples); 
 ]]
-
-local function convert(counts, numClasses) 
+local TUV = {}
+function TUV.convert(counts, numClasses) 
   local prior = Matrix.mat(1, numClasses)
-  prior:view("all", "all"):set(1)
+  prior:view("all", "all"):set(1/numClasses)
   local multiplier = numClasses
   --counts:params()
   local alpha = prior + counts:mult(multiplier)
@@ -26,21 +26,30 @@ local function convert(counts, numClasses)
 end
 
 
-local function tuvCalc(counts, marginalProbs)
+function TUV.tuvCalc(counts, marginalProbs, lambda)
 
-  local numSamples = 100
+  local numSamples = 1000
   local numQueries = counts.n_rows 
   local tuv        = Matrix.mat(numQueries, 1)
   for i = 0, numQueries-1 do
-    local alpha = convert(counts:rows(i), counts.n_cols)
+    local alpha = TUV.convert(counts:rows(i), counts.n_cols)
     local p = unc.createDirich(alpha.data, alpha.n_elem, numSamples)
-    tuv.data[i] = marginalProbs.data[i] * (p.p1 - p.p2)
+    tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p.p1 - lambda[2] * p.p2)
   end
   return tuv
 end
 
-local function getBestTuv(counts, marginalProbs)
-  local tuv = tuvCalc(counts, marginalProbs)
+function TUV.tableWrapper(t, lambda, numSamples)
+  local matrix = Matrix.Mat(t)
+  local p = unc.createDirich(matrix.data, matrix.n_elem, numSamples)
+  --print(p.p1, p.p2)
+  return lambda[1] * p.p1 - lambda[2] * p.p2
+  --return p.p2
+end
+
+function TUV.getBestTuv(counts, marginalProbs, lambda)
+  local l = lambda or {1,1}
+  local tuv = TUV.tuvCalc(counts, marginalProbs, l)
   return tuv:sortIndices('descend'), tuv
 end
 
@@ -58,4 +67,5 @@ local function testTUV()
 end
 
 --testTUV()
-return getBestTuv
+setmetatable(TUV, {__call= function() return TUV.getBestTuv end})
+return TUV
