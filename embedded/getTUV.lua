@@ -19,7 +19,7 @@ local TUV = {}
 function TUV.convert(counts, numClasses) 
   local prior = Matrix.mat(1, numClasses)
   prior:view("all", "all"):set(1/numClasses)
-  local multiplier = numClasses
+  local multiplier = 1
   --counts:params()
   local alpha = prior + counts:mult(multiplier)
   return alpha

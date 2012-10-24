@@ -30,8 +30,8 @@ local getCounts = function(kernel, trainingIndices, queryIndices, labels, numCla
   local rfOptions = { bootstrapper = 
   RandomForest.policies.queryBootstrapper(defaultData, defaultLabels, bagSize),
 
-  stopPolicy = RandomForest.policies.stopBinary(),
-  splitPolicy = RandomForest.policies.oblique(RandomForest.heuristics.gini)
+  --stopPolicy = RandomForest.policies.stopBinary(),
+  --splitPolicy = RandomForest.policies.oblique(RandomForest.heuristics.gini)
 }
   print("options finished")
 

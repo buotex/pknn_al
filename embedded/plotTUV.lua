@@ -11,12 +11,13 @@ local numPoints = 100
 --tuv:reshapeTo(numPoints, numPoints)
 
 local numClasses = 6
-local prior = 1
-local scaling = numClasses  / (numPoints)
+local prior = 1/numClasses
+local scaling = 3 / (numPoints)
 local resultfile = io.open("plotTUV.txt", "w+")
+local numSamples = 1000
 io.output(resultfile)
-for i = 0, numPoints -1 do
-  for j = 0, numPoints -1 do
+for j = 0, numPoints - 1 do
+  for i = j, numPoints -1 do
     local first = i * scaling + prior
     local second = j * scaling + prior
     local dummy = prior
@@ -26,15 +27,15 @@ for i = 0, numPoints -1 do
     Tuv.tableWrapper(
     t, 
     {1,1}, --lambda
-    100   --numSamples}
+    numSamples   --numSamples}
     )))
   end
 end
 io.close()
 local resultfile = io.open("plotTUV_Uncertainty.txt", "w+")
 io.output(resultfile)
-for i = 0, numPoints -1 do
-  for j = 0, numPoints -1 do
+for j = 0, numPoints - 1 do
+  for i = j, numPoints -1 do
     local first = i * scaling + prior
     local second = j * scaling + prior
     local dummy = prior
@@ -44,14 +45,14 @@ for i = 0, numPoints -1 do
     Tuv.tableWrapper(
     t, 
     {1,0}, --lambda
-    100   --numSamples}
+    numSamples   --numSamples}
     )))
   end
 end
 local resultfile = io.open("plotTUV_Exploration.txt", "w+")
 io.output(resultfile)
 for i = 0, numPoints -1 do
-  for j = 0, numPoints -1 do
+  for j = i, numPoints -1 do
     local first = i * scaling + prior
     local second = j * scaling + prior
     local dummy = prior
@@ -61,7 +62,7 @@ for i = 0, numPoints -1 do
     Tuv.tableWrapper(
     t, 
     {0,1}, --lambda
-    100   --numSamples}
+    numSamples --numSamples}
     )))
   end
 end

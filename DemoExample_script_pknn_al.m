@@ -41,7 +41,7 @@ numclass = 6
 initN=1; %Number of initial labeled examples
 poolN=15; %Number of examples in the pool, remaining are "hold-out" examples and are used for testing accuracy
 
-numrun=20; %Average over 20 runs
+numrun=5; %Average over 20 runs
 n=size(K,2);
 m=numclass;
 params=SetDefaultArguments(numclass); %Set default parameters
@@ -90,13 +90,13 @@ for run=1:numrun
     params.al_type=0; %Use random selection for active learning
     fprintf('\n pKNN+RF   Run%d\n',run);
     [acc_pknn_rf(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
-
-    trn_idx_pknn_rf=trn_idx;
-    qr_idx_pknn_rf=qr_idx;
-    test_idx_pknn_rf=test_idx;
-    params.al_type=0; %Use random selection for active learning
-    fprintf('\n pKNN+RF2   Run%d\n',run);
-    [acc_pknn_rf2(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new2(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
+%
+%    trn_idx_pknn_rf=trn_idx;
+%    qr_idx_pknn_rf=qr_idx;
+%    test_idx_pknn_rf=test_idx;
+%    params.al_type=0; %Use random selection for active learning
+%    fprintf('\n pKNN+RF2   Run%d\n',run);
+%    [acc_pknn_rf2(:,run),trn_idx_pknn_rf_before, trn_idx_pknn_rf_after] =pknn_new2(K([trn_idx_pknn_rf qr_idx_pknn_rf],[trn_idx_pknn_rf qr_idx_pknn_rf]), K(test_idx_pknn_rf, [trn_idx_pknn_rf qr_idx_pknn_rf]), 1:length(trn_idx_pknn_rf), length(trn_idx_pknn_rf)+(1:length(qr_idx_pknn_rf)), lbl([trn_idx_pknn_rf qr_idx_pknn_rf]), lbl(test_idx_pknn_rf), numclass, params);
 
     %Active learning with method 1
     trn_idx_pknn_al=trn_idx; %Initial training index
@@ -124,7 +124,7 @@ h = figure('Visible', 'off');
 errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf(:,:),2), std(100 * acc_pknn_rf(:,:),0,2),'r-o');
 hold;
 %plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf2(:,:),2),'b--x');
-errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf2(:,:),2), std(100 * acc_pknn_rf2(:,:),0,2),'b--x');
+%errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rf2(:,:),2), std(100 * acc_pknn_rf2(:,:),0,2),'b--x');
 %plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2),'m--x');
 errorbar(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_al(:,:),2), std(100 * acc_pknn_al(:,:),0,2),'m--x');
 %plot(0:params.al_numqr:params.al_numqr*(params.al_round),100*mean(acc_pknn_rand(:,:),2),'b--x');
