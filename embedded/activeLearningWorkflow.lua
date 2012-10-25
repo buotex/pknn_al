@@ -80,8 +80,8 @@ local classes = {}
 for i = 1, #classnames do
   classes[i] = classNameMapping[classnames[i] ]
 end
-Dtools.printtable(classes,"classes")
-Dtools.waitInput()
+--Dtools.printtable(classes,"classes")
+--Dtools.waitInput()
 --local classes = {1,5,10,20,25,30}
 
 --local classes = Matrix.range(10,20) 
@@ -154,9 +154,9 @@ while run < numRuns do
 
     local labels, classesFound = trainSet.labels(trainingIndices, "all"):count()
 
-    --Dtools.printtable(trainingIndices, "trainingIndices")
+    Dtools.printtable(trainingIndices, "trainingIndices")
     --Dtools.printtable(queryIndices, "queryIndices")
-    Dtools.printtable(trainSet.labels(trainingIndices, "all"):count(), "TrainingLabels")
+    --Dtools.printtable(trainSet.labels(trainingIndices, "all"):count(), "TrainingLabels")
 
     local rf = Workflow.buildForest(
     trainSet.kernel, trainSet.labels, trainingIndices, queryIndices, featureIndices
@@ -324,7 +324,7 @@ while run < numRuns do
 
     --END ANALYSIS
     --tuv:view(testIndices, "all"):print("testIndices")
-    counts:view(tuvIndices, "all"):view({0,1,2,3,4,5},"all"):print("counts")
+    --counts:view(tuvIndices, "all"):view({0,1,2,3,4,5},"all"):print("counts")
     --Dtools.printtable(testIndices)
     --1-based tuvIndices, for sorting reasons
     trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1]]
