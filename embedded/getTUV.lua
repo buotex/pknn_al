@@ -14,8 +14,10 @@ double p2;
 
 p_struct createDirich(double * alpha, size_t length, size_t numSamples); 
 p_struct createOther(double * alpha, size_t length, size_t numSamples); 
+int createDirichMatrix(double * alpha, size_t length, size_t numSamples, size_t numObjects, double * results);
 ]]
 local TUV = {}
+TUV.numSamples = 100
 function TUV.convert(counts, numClasses) 
   local prior = Matrix.mat(1, numClasses)
   prior:view("all", "all"):set(1/numClasses)
@@ -28,14 +30,26 @@ end
 
 function TUV.tuvCalc(counts, marginalProbs, lambda)
 
-  local numSamples = 1000
   local numQueries = counts.n_rows 
   local tuv        = Matrix.mat(numQueries, 1)
+
+  local p_matrix = Matrix.mat(numQueries, 2)
+  local alpha    = Matrix.mat(numQueries, counts.n_cols)
+  for i = 0, numQueries-1 do
+    alpha:view(i, "all"):set(TUV.convert(counts:rows(i), counts.n_cols):all())
+  end
+  local errorcode = unc.createDirichMatrix(alpha.data, alpha.n_cols, TUV.numSamples, alpha.n_rows, p_matrix.data)
+  for i = 0, numQueries-1 do
+    tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p_matrix:get(i,0) - lambda[2] * p_matrix:get(i,1))
+  end
+  
+  --[[
   for i = 0, numQueries-1 do
     local alpha = TUV.convert(counts:rows(i), counts.n_cols)
-    local p = unc.createDirich(alpha.data, alpha.n_elem, numSamples)
+    local p = unc.createDirich(alpha.data, alpha.n_elem, TUV.numSamples)
     tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p.p1 - lambda[2] * p.p2)
   end
+  ]]--
   return tuv
 end
 

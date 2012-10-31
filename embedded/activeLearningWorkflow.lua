@@ -74,8 +74,8 @@ testClasses:reshapeTo(testClasses.n_cols, testClasses.n_rows)
 
 --OPTION
 local classnames = {"BACKGROUND_Google", "octopus", "hawksbill", "pigeon", "watch", "umbrella", "electric_guitar", "garfield", "gerenuk", "inline_skate", "lobster", "lotus", "mandolin", "okapi"}
-local classnames = {"octopus", "hawksbill", "pigeon", "watch", "umbrella"}
-local classnames = {"octopus", "hawksbill"}
+--local classnames = {"octopus", "hawksbill", "pigeon", "watch", "umbrella"}
+--local classnames = {"octopus", "hawksbill"}
 local classes = {}
 for i = 1, #classnames do
   classes[i] = classNameMapping[classnames[i] ]
@@ -154,15 +154,13 @@ while run < numRuns do
 
     local labels, classesFound = trainSet.labels(trainingIndices, "all"):count()
 
-    Dtools.printtable(trainingIndices, "trainingIndices")
+    --Dtools.printtable(trainingIndices, "trainingIndices")
     --Dtools.printtable(queryIndices, "queryIndices")
     --Dtools.printtable(trainSet.labels(trainingIndices, "all"):count(), "TrainingLabels")
 
     local rf = Workflow.buildForest(
     trainSet.kernel, trainSet.labels, trainingIndices, queryIndices, featureIndices
     ) 
-    --[[
-    --print("BLUB", rf)
     ----STATISTICS
     ----local leafSizeCounts = rf:visitAllNodes(RandomForest.accumulators.leafSizeCounter)
     ----local classSizeCounts = rf:visitAllNodes(RandomForest.accumulators.classSizeCounter):finalize()
@@ -217,69 +215,22 @@ while run < numRuns do
     --OPTIONAL_ACCURACY_START
 
     if SHOW_ACCURACY  then
-      local accuracy = {}
-      local accuracy_counts = {}
-      for _,i in pairs(classes) do
-        accuracy_counts[i] = {correct = 0, count = 0}
-      end
 
       --local bagSize = math.floor(classesFound *2) --number of combined training and unlabeled samples
       --local bagSize = math.floor(defaultBagsize *2) --number of combined training and unlabeled samples
 
-      local options = 
-      {
-        bootstrapper = 
-        --RandomForest.policies.equalityBootstrapper(
-        RandomForest.policies.queryBootstrapper,
-        --splitPolicy = RandomForest.policies.oblique(RandomForest.heuristics.gini),
-        --stopPolicy = RandomForest.policies.stopBinary() 
-        bagSize=(#trainingIndices + 1) * 2
+      --local rf_mod = Workflow.buildForest(trainSet.kernel, trainSet.labels, trainingIndices, queryIndices, featureIndices, options) 
 
-      }
-      --Dtools.printtable(options)
-      --defaultLabels:print("labels")
-      --Dtools.printtable(queryIndices)
-      --Dtools.printtable(featureIndices)
-      --trainSet.kernel:params()
-      --trainSet.labels:params()
-      local rf_mod = Workflow.buildForest(trainSet.kernel, trainSet.labels, trainingIndices, queryIndices, featureIndices, options) 
-      print("BLI", rf_mod)
-
-      local accumulator = rf_mod:predict(testSet.kernel, {accumulator = RandomForest.accumulators.singleVoter})
-      --local affinity_matrix = Matrix.mat(numClasses, numClasses)
-      --affinity_matrix:view("all", "all"):set(0)
-      for i = 0, #accumulator.results do
-        --print(accumulator.results[i].label)
-        --print(labels:view(queryIndices, "all"):get(i,0))
-        local correctLabel = testSet.labels:get(i,0)
-        local predictedLabel = accumulator.results[i].label
-        -- TODO: FIXME
-        --affinity_matrix.data[
-        --affinity_matrix:index(classMapping[predictedLabel], classMapping[correctLabel])] = 
-        --affinity_matrix.data[affinity_matrix:index(classMapping[predictedLabel], classMapping[correctLabel])] + 1
-        
-        accuracy[i] = (predictedLabel ==  correctLabel)
-        if accuracy[i] then accuracy_counts[correctLabel].correct = accuracy_counts[correctLabel].correct + 1 end
-        accuracy_counts[correctLabel].count = accuracy_counts[correctLabel].count + 1 
-      end
-
-      --   affinity_matrix:print("affinity_matrix","%d")
-      --some accuracy statistics:
-
-      local acc_summary = {correct = 0, count = 0}
-      for index,class in pairs(classes) do
-        print("Class: ", class)
-        local ratio = accuracy_counts[class].correct / accuracy_counts[class].count
-        --print(index, class)
-        --Dtools.waitInput()
+      local acc_summary, acc_counts = Workflow.testAccuracy(rf, testSet.kernel, testSet.labels, classes)
+      for class, t in pairs(acc_counts) do
+        local ratio = t.correct / t.count
+        io.write(string.format("class: %d %.02f\n", class, ratio)) 
         results.data[results:index(numLabeledSamples - 1, classMapping[class])] = ratio
 
-        print("Ratio: ", ratio)
-
-        acc_summary.correct = acc_summary.correct + accuracy_counts[class].correct
-        acc_summary.count = acc_summary.count + accuracy_counts[class].count
       end
       print("global ratio: ", acc_summary.correct / acc_summary.count)
+
+
       --local accumulator = rf_mod:predict(testSet.kernel, {accumulator = RandomForest.accumulators.treeCounter(numClasses, 6, classMapping, numTrees)})
       --if run == numRuns and numLabeledSamples == maxSamples then
       --  for i = 0, 10 do
@@ -287,12 +238,10 @@ while run < numRuns do
       --  end
       --end
     end
-    ]]--
     --create counts Matrix:
     --OPTION
     --ATTENTION: this will probably hurt me down the road: let's create the counts-matrix in
     --C-order 
-    print("BLAA", rf)
 
     local accumulator = rf:predict(
     trainSet.kernel(queryIndices, featureIndices), 

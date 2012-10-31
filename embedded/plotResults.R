@@ -17,7 +17,7 @@ numClasses = ncol(benchmark)
 bp <- barplot(t(as.matrix(benchmark)), beside = TRUE, main="Accuracy of AL-approach
 starting from zero", xlab = "#labeled samples - label of most recently added
 training sample", ylab
-= "Accuracy", col = colors[1:numClasses])
+= "Accuracy", col = colors[1:numClasses], border = NA)
 x <- (bp[numClasses / 2,] + bp[numClasses / 2 + 1,])/2
 lines(x, rowSums(as.matrix(benchmark) / numClasses))
 #print(bp[numClasses / 2,])

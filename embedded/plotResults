@@ -1,0 +1,5 @@
+#!/bin/zsh
+./plotResults.R
+./plotTUVS.R
+epdfview accuracy.pdf &
+epdfview tuvs.pdf &

@@ -1,0 +1,128 @@
+trainingIndices
+0	1049
+BLAA	table: 0x4098a958
+trainingIndices
+0	1049
+1	1035
+BLAA	table: 0x4097a820
+trainingIndices
+0	1049
+1	1035
+2	1036
+BLAA	table: 0x41441258
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+BLAA	table: 0x41415f08
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+BLAA	table: 0x40834b50
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+BLAA	table: 0x4322d660
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+BLAA	table: 0x445a0cf0
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+7	1044
+BLAA	table: 0x4574d960
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+7	1044
+8	1040
+BLAA	table: 0x46d14678
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+7	1044
+8	1040
+9	2643
+BLAA	table: 0x48b26e98
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+7	1044
+8	1040
+9	2643
+10	1874
+BLAA	table: 0x40e58420
+trainingIndices
+0	1049
+1	1035
+2	1036
+3	2803
+4	2013
+5	1037
+6	2797
+7	1044
+8	1040
+9	2643
+10	1874
+11	1873
+BLAA	table: 0x48824ea0
+"mean:print()" called by ./activeLearningWorkflow.lua: 397
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+"variance:print()" called by ./activeLearningWorkflow.lua: 398
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	
+0.00	0.00	

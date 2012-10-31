@@ -14,7 +14,7 @@ colors <- rgb(colors, maxColorValue=255)
 barplot(t(as.matrix(benchmark)), beside = TRUE, main="vote-distribution for the
 sample with the highest TUV" ,  xlab = "#labeled samples - label of chosen
 training sample with the highest TUV", ylab
-= "#votes per tree ", col = colors[1:numClasses])
+= "#votes per tree ", col = colors[1:numClasses], border=NA)
 #heat.colors(ncol(benchmark)))
 # 'cex' stands for 'character expansion', 'bty' for 'box type' (we don't want
 # borders)

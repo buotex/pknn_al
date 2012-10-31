@@ -40,7 +40,7 @@ writematrix.o: writematrix.cpp
 
 
 uncertainty.so: uncertainty.cpp
-	$(CC) -O2 -std=c++11 -fPIC $(LDFLAGS) $(ARMADILLO_LINK) $^ -o libuncertainty.so
+	$(CC) -O2 -std=c++11 -fPIC $(LDFLAGS) -fopenmp  $(ARMADILLO_LINK) $^ -o libuncertainty.so
 
 
 clean:
