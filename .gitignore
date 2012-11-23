@@ -1,3 +1,6 @@
 *.mexa64
 *.so
 *.o
+*.png
+*.jpg
+*.pdf
