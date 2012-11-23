@@ -17,7 +17,7 @@ numClasses = ncol(benchmark)
 bp <- barplot(t(as.matrix(benchmark)), beside = TRUE, main="Accuracy of AL-approach
 starting from zero", xlab = "#labeled samples - label of most recently added
 training sample", ylab
-= "Accuracy", col = colors[1:numClasses], border = NA)
+= "Accuracy", col = rev(colors[1:numClasses]), border = NA)
 x <- (bp[numClasses / 2,] + bp[numClasses / 2 + 1,])/2
 lines(x, rowSums(as.matrix(benchmark) / numClasses))
 #print(bp[numClasses / 2,])
@@ -26,7 +26,7 @@ lines(x, rowSums(as.matrix(benchmark) / numClasses))
 # 'cex' stands for 'character expansion', 'bty' for 'box type' (we don't want
 # borders)
     legend("topleft", names(benchmark), cex = 0.9, bty = "n", fill =
-colors[1:numClasses])
+rev(colors[1:numClasses]))
 legend("topright", "mean accuracy", fill="black")
 
 

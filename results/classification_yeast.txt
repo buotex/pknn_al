@@ -42,3 +42,15 @@ global ratio: 	0.49925037481259
 8 2
 9 74
 10 58
+LOO-results:
+Class 1: 0.66
+Class 2: 0.00
+Class 3: 0.63
+Class 4: 0.82
+Class 5: 0.35
+Class 6: 0.89
+Class 7: 0.59
+Class 8: 0.57
+Class 9: 0.00
+Class 10: 0.00
+

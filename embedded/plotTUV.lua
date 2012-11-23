@@ -10,59 +10,40 @@ local numPoints = 100
 --tuv:print()
 --tuv:reshapeTo(numPoints, numPoints)
 
-local numClasses = 6
-local prior = 1/numClasses
-local scaling = 3 / (numPoints)
-local resultfile = io.open("plotTUV.txt", "w+")
+local numClasses = 13
+local prior = 0
+local scaling = 20 / (numPoints)
 local numSamples = 1000
-io.output(resultfile)
-for j = 0, numPoints - 1 do
-  for i = j, numPoints -1 do
-    local first = i * scaling + prior
-    local second = j * scaling + prior
-    local dummy = prior
-    local t = {first, second}
-    for k = 3, numClasses do t[k] = dummy end
-    io.write(string.format("%e %e %e \n", first, second,
-    Tuv.tableWrapper(
-    t, 
-    {1,1}, --lambda
-    numSamples   --numSamples}
-    )))
+local function writeValues(outputfile, lambda)
+  io.output(outputfile)
+
+  for j = 0, numPoints - 1 do
+    for i = j, numPoints -1 do
+      local first = i * scaling + prior
+      local second = j * scaling + prior
+      local third = second
+      local dummy = 1
+      local t = {first, dummy, second, dummy, third}
+      for k = 6, numClasses do t[k] = dummy end
+      t[numClasses] = 0.5
+      io.write(string.format("%e %e %e \n", first, second,
+      Tuv.tableWrapper(
+      t, 
+      lambda, --lambda
+      numSamples   --numSamples}
+      )))
+    end
   end
+
+  io.close()
+
 end
-io.close()
+
+
+local resultfile = io.open("plotTUV.txt", "w+")
+writeValues(resultfile, {1,1})
 local resultfile = io.open("plotTUV_Uncertainty.txt", "w+")
-io.output(resultfile)
-for j = 0, numPoints - 1 do
-  for i = j, numPoints -1 do
-    local first = i * scaling + prior
-    local second = j * scaling + prior
-    local dummy = prior
-    local t = {first, second}
-    for k = 3, numClasses do t[k] = dummy end
-    io.write(string.format("%e %e %e \n", first, second,
-    Tuv.tableWrapper(
-    t, 
-    {1,0}, --lambda
-    numSamples   --numSamples}
-    )))
-  end
-end
+writeValues(resultfile, {1,0})
+
 local resultfile = io.open("plotTUV_Exploration.txt", "w+")
-io.output(resultfile)
-for i = 0, numPoints -1 do
-  for j = i, numPoints -1 do
-    local first = i * scaling + prior
-    local second = j * scaling + prior
-    local dummy = prior
-    local t = {first, second}
-    for k = 3, numClasses do t[k] = dummy end
-    io.write(string.format("%e %e %e \n", first, second,
-    Tuv.tableWrapper(
-    t, 
-    {0,1}, --lambda
-    numSamples --numSamples}
-    )))
-  end
-end
+writeValues(resultfile, {0,1})

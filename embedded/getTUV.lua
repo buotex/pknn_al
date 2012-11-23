@@ -15,6 +15,8 @@ double p2;
 p_struct createDirich(double * alpha, size_t length, size_t numSamples); 
 p_struct createOther(double * alpha, size_t length, size_t numSamples); 
 int createDirichMatrix(double * alpha, size_t length, size_t numSamples, size_t numObjects, double * results);
+int createUncertaintyMatrix(double * alpha, size_t length, size_t numSamples, size_t numObjects, double * results);
+
 ]]
 local TUV = {}
 TUV.numSamples = 100
@@ -25,6 +27,23 @@ function TUV.convert(counts, numClasses)
   --counts:params()
   local alpha = prior + counts:mult(multiplier)
   return alpha
+end
+
+
+function TUV.tuvCalcNew(counts, marginalProbs, lambda)
+
+  local numQueries = counts.n_rows 
+  local tuv        = Matrix.mat(numQueries, 1)
+
+  local p_matrix = Matrix.mat(numQueries, 2)
+  local alpha = counts
+  local errorcode = unc.createUncertaintyMatrix(alpha.data, alpha.n_cols, TUV.numSamples, alpha.n_rows, p_matrix.data)
+  for i = 0, numQueries-1 do
+    --tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p_matrix:get(i,0) - lambda[2] * p_matrix:get(i,1))
+    tuv.data[i] = lambda[1] * marginalProbs.data[i] + lambda[2] * (p_matrix:get(i,0) - p_matrix:get(i,1))
+  end
+  
+  return tuv
 end
 
 
@@ -40,7 +59,8 @@ function TUV.tuvCalc(counts, marginalProbs, lambda)
   end
   local errorcode = unc.createDirichMatrix(alpha.data, alpha.n_cols, TUV.numSamples, alpha.n_rows, p_matrix.data)
   for i = 0, numQueries-1 do
-    tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p_matrix:get(i,0) - lambda[2] * p_matrix:get(i,1))
+    --tuv.data[i] = marginalProbs.data[i] * (lambda[1] * p_matrix:get(i,0) - lambda[2] * p_matrix:get(i,1))
+    tuv.data[i] = lambda[1] * marginalProbs.data[i] + lambda[2] * (p_matrix:get(i,0) - p_matrix:get(i,1))
   end
   
   --[[
@@ -52,7 +72,6 @@ function TUV.tuvCalc(counts, marginalProbs, lambda)
   ]]--
   return tuv
 end
-
 function TUV.tableWrapper(t, lambda, numSamples)
   local matrix = Matrix.Mat(t)
   local p = unc.createDirich(matrix.data, matrix.n_elem, numSamples)
@@ -67,14 +86,39 @@ function TUV.getBestTuv(counts, marginalProbs, lambda)
   return tuv:sortIndices('descend'), tuv
 end
 
+function TUV.getBestNewTuv(counts, marginalProbs, lambda)
+  local l = lambda or {1,1}
+  local tuv = TUV.tuvCalcNew(counts, marginalProbs, l)
+  return tuv:sortIndices('descend'), tuv
+end
+
+function TUV.tableWrapper(t, lambda, numSamples)
+  local counts = Matrix.Mat(t)
+  counts:reshapeTo(1, counts.n_elem)
+  local numQueries = counts.n_rows 
+  local tuv        = Matrix.mat(numQueries, 1)
+  local p_matrix = Matrix.mat(numQueries, 2)
+  local alpha = counts
+  local numSamples = numSamples or TUV.numSamples
+  local errorcode = unc.createUncertaintyMatrix(alpha.data, alpha.n_cols, numSamples, alpha.n_rows, p_matrix.data)
+  for i = 0, numQueries - 1 do
+    tuv.data[i] = lambda[1] * p_matrix:get(i,0) - lambda[2] * p_matrix:get(i,1)
+  end
+  return tuv.data[0]
+  --return p.p2
+end
 
 local function testTUV()
   local counts = 
-  Matrix.Mat{1,2,1,5,6,5,10,11,10,20,21,20} 
-  counts:reshapeTo(4,3)
+  Matrix.Mat{3,0.2,4,0.5,2,1,3,0.5,0.8,
+  --10,0.5,0,0,0,0,0,0,0.9,
+  --10,2,20,2,0,0,0,0,0.2
+  } 
+  counts:reshapeTo(1,9)
   counts:print()
-  local marginalProbs = Matrix.Mat{1,1,1,1}
-  local indices, tuv = getBestTuv(counts, marginalProbs) 
+  local marginalProbs = Matrix.Mat{0}
+  local indices, tuv = TUV.getBestNewTuv(counts, marginalProbs) 
+  tuv:print()
   counts(indices, "all"):print()
   tuv(indices, "all"):print()
 

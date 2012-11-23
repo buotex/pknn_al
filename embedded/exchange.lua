@@ -15,56 +15,35 @@ local Density = require("activelearning.getDensity")
 
 math.randomseed(0)
 
-local file = io.input("/home/bxu/data/uci/yeast.data")
-local t = {}
-while true do
-  local line = io.read("*line")
-  if not line then break end
-  local linetable = {}
-  for w in string.gmatch(line,"([^%s]+)") do 
---    print(w) 
-    linetable[#linetable+1] = w
-  end
-  t[#t + 1] = linetable 
-end
-local data   = Matrix.mat(#t, #t[1] - 2)
-local labels = Matrix.mat(#t, 1)
---data:view(0, "all"):print()
-local classnames = {"CYT", "ERL", "EXC", "ME1", "ME2", "ME3", "MIT", "NUC",
-"POX", "VAC" }
-local classes = Matrix.range(1,#classnames + 1)
-local numClasses = #classnames
-local classMapping = Matrix.range(-1, numClasses)
-local translationTable = {}
-for i,v in ipairs(classnames) do
-  translationTable[v] = i
-end
-Dtools.printtable(classMapping)
---local classMapping = Matrix.range(-1,#classnames)
---local classnames = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"}
---local classnames = {"text", "horiz.line", "graphic", "vert.line", "picture"}
-
-
-for i = 1, #t do
-  labels.data[labels:index(i - 1, 0)] = translationTable[t[i][#t[i] ] ]
-  for j = 2, #t[i] - 1 do
-    data.data[data:index(i - 1,j - 2)] = tonumber(t[i][j])
-  end
-end
-
---labels:print()
-
-local data = data:view("all", {0,1,2,3,4,6,7}):materialize()
 
 local zmq = require("zmq")
 local ctx = zmq.init()
 local s = ctx:socket(zmq.REQ)
 s:connect("ipc:///tmp/zmq-test")
-s:send("yeast_prior1")
-local ret = s:recv()
-print("Response from Python: ", ret)
+s:send("toy_example")
+
+
+local data = Matrix.fromZMQ(s)
+local labels = Matrix.fromZMQ(s)
+s:recv()
 data:send(s)
 labels:send(s)
+
+local function parseLabels(labels)
+  local classes = {}
+  for i = 0, labels.n_elem - 1 do
+    classes[labels.data[i]] = labels.data[i]  
+  end
+  local classnames = {}
+  for k,v in ipairs(classes) do
+    classnames[k] = tostring(v)
+  end
+  local numClasses = #classes
+  local classMapping = Matrix.range(-1, numClasses)
+  return classnames, classes, numClasses, classMapping
+end
+
+local classnames, classes, numClasses, classMapping = parseLabels(labels)
 
 --Dtools.printtable(classes)
 RandomForest.Debug = false
@@ -73,21 +52,20 @@ RandomForest.Debug = false
 local SHOW_ACCURACY = true
 local PLOT = true
 
---data:print()
-local densities = Density.query(data, 1)
+local densities = Density.query(data, 4)
 for i = 0, densities.n_elem - 1 do
   densities.data[i] = math.exp(densities.data[i])
 end
---densities:print()
+densities:print()
+densities:view("all", "all"):set(1)
 --local zeroes = Matrix.mat(densities.n_rows, densities.n_cols)
 --local densities = zeroes - densities
-
 
 local numRuns = 1
 local run = 0 
 
 local allResults = {}
-local maxSamples = 150
+local maxSamples = 45
 while run < numRuns do
   run = run + 1
 
@@ -129,6 +107,7 @@ while run < numRuns do
     local rf = Workflow.buildForest(
     data, labels, trainingIndices, queryIndices, featureIndices
     ) 
+    print("built")
     ----STATISTICS
     ----local leafSizeCounts = rf:visitAllNodes(RandomForest.accumulators.leafSizeCounter)
     ----local classSizeCounts = rf:visitAllNodes(RandomForest.accumulators.classSizeCounter):finalize()
@@ -193,7 +172,6 @@ while run < numRuns do
     --ATTENTION: this will probably hurt me down the road: let's create the counts-matrix in
     --C-order 
 
-----[[ this is the old version for predicting/voting
     local accumulator = rf:predict(
     data(queryIndices, featureIndices), 
     {accumulator = RandomForest.accumulators.singleVoter}
@@ -207,16 +185,6 @@ while run < numRuns do
         end
       end
     end
---    ]]--
---[[
-    local accumulator = rf:predict(
-    data(queryIndices, featureIndices), 
-    {accumulator = RandomForest.accumulators.treeCounter(numClasses, 6, classMapping, Workflow.numTrees)}
-    )
-
-    local counts = accumulator.distributions
-]]--
-
     --counts:print()
 
     --OPTION
@@ -224,23 +192,14 @@ while run < numRuns do
     --local marginalProbs = trainSet.kernel(queryIndices, "all"):sum("cols")
     --local marginalProbs = Matrix.mat(#t, 1)
     --marginalProbs:view("all", "all"):set(1)
-    s:send(tostring(trainingIndices[#trainingIndices]))
-    local densities_experimental = Matrix.fromZMQ(s)
-    --densities_experimental:params()
-    --Dtools.waitInput()
-    --local meta = s:recv()
-    --local dat = s:recv()
-    --print(meta)
-    --s:send("OK")
-    s:recv()
-    local marginalProbs = densities_experimental(queryIndices, "all")
-    --marginalProbs:print()
-    --marginalProbs:view("all", "all"):set(1)
-    --marginalProbs:print()
+
+    local marginalProbs = densities(queryIndices, "all")
     --calculate TUV, add new label
     local lambda = {1,1}
 
     local tuvIndices, tuv = TUV.getBestTuv(counts, marginalProbs, lambda)
+    tuv:send(s)
+    counts:send(s)
     --ANALYSIS
     pickedLabels.data[numLabeledSamples - 1] = classMapping[labels(trainingIndices[#trainingIndices], "all").data[0] ]
     bestTUV:view(numLabeledSamples - 1, "all"):set(counts:view(tuvIndices, "all"):view(0,"all"):all())
@@ -316,7 +275,6 @@ ctx:term()
 
 --mean_aggregate:print("mean")
 --variance_aggregate:print("variance")
-
 local resultfile = io.open("results.dat", "w+")
 io.output(resultfile)
 io.write("NumberOfSamples\t")
