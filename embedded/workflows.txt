@@ -1,0 +1,3 @@
+#!/bin/zsh 
+./plotTUV.lua; ./plotTUV2.plt; pdflatex miniwrapper.tex; foxit miniwrapper.pdf;
+pdfcrop miniwrapper.pdf results/plotTUV2D20class.pdf

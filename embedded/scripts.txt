@@ -1,0 +1,1 @@
+./plotTUV2.plt; pdflatex miniwrapper.tex; foxit miniwrapper.pdf; pdfcrop miniwrapper.pdf results/plotTUV2D2class.pdf
