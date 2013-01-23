@@ -1,10 +1,10 @@
 --package.path = package.path .. ";/home/bxu/code/toolbox/datatypes/?.lua"
 --package.path = package.path .. ";/home/bxu/code/toolbox/?.lua"
-
+local alprefix="/home/bxu/code/toolbox/algorithms/activelearning/"
 local ffi = require("ffi")
 local Dtools = require("debugtools.debug")
 local Matrix = require("ljmatrix.densematrix")
-local unc = ffi.load("uncertainty")
+local unc = ffi.load(alprefix .. "libuncertainty".. ".so")
 
 ffi.cdef[[
 typedef struct {

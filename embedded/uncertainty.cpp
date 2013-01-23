@@ -131,6 +131,11 @@ extern "C" {
       createDirich(double * alpha, std::size_t length, std::size_t numSamples) {
         return createDirich(std::vector<double>(alpha, alpha + length), numSamples);
       }
+int
+    createSingleDirich_(double * alpha, std::size_t length, std::size_t numSamples, double * results) {
+      return createSingleDirich(alpha, length, numSamples, results); 
+    }
+
   int 
       createDirichMatrix(double * alpha, std::size_t length, std::size_t numSamples, std::size_t numObjects, double * results) {
         //std::vector<int> seeds(numObjects);

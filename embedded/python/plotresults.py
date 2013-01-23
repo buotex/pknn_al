@@ -5,7 +5,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 cardinality = [463, 5, 35, 44, 51, 163, 244, 429, 20, 30]
 fullcount = sum(cardinality)
-filelist =  ["tree", "gmm", "graph","constant", "graph_sum","leaveoneout"]
+filelist =  ["leaveoneout", "constant", "implicit", "graph", "random", "tree",
+              "gmm"]
 
 X_data = range(1,151)
 Y_data = [[] for i in range(len(filelist))]
@@ -34,7 +35,7 @@ ax.set_ylabel("Averaged Recall")
 ax2.set_ylabel("Overall Recall")
 
 
-markers = ("*", "^", "o", "v", "<","D")
+markers = ("*", "^", "o", "+", "<","D", "v")
 for dat, marker, label in zip(Y_data, markers, filelist):
     ax.plot(X_data, dat,marker=marker, label = label, linestyle=":")
 for dat, marker, label in zip(Y_data2, markers, filelist):
@@ -42,7 +43,7 @@ for dat, marker, label in zip(Y_data2, markers, filelist):
 ax.legend(loc=2)
 ax2.legend(loc=2)
 plt.show()
-pp = PdfPages("../results/set1/yeast_comparison_densities.pdf")
+pp = PdfPages("../results/set2/yeast_comparison_densities.pdf")
 pp.savefig(fig)
 pp.close()
 

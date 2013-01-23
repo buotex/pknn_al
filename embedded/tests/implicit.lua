@@ -3,6 +3,7 @@
 package.path =  package.path .. ";/home/bxu/code/toolbox/datatypes/?.lua"
 package.path =  package.path .. ";/home/bxu/code/toolbox/algorithms/?.lua"
 package.path = package.path .. ";/home/bxu/code/toolbox/?.lua"
+package.path = package.path .. ";/home/bxu/code/pknn_al/embedded/?.lua"
 local os  = require("os")
 local ffi = require("ffi")
 --local narray = require("ljarray.array")
@@ -11,61 +12,30 @@ local RandomForest = require("randomforest.rf")
 local Dtools = require("debugtools.debug")
 local TUV = require("getTUV")
 local Workflow = require("activelearning.workflow")
-local Density = require("activelearning.getDensity")
+--local Density = require("activelearning.getDensity")
+local RangeFilter = require("rangefilter")
+local Selector = require("selector")
+local Dataset = require("dataset_selector")
 
+local ENABLE_ZMQ=false
 math.randomseed(0)
 
-local file = io.input("/home/bxu/data/uci/yeast.data")
-local t = {}
-while true do
-  local line = io.read("*line")
-  if not line then break end
-  local linetable = {}
-  for w in string.gmatch(line,"([^%s]+)") do 
---    print(w) 
-    linetable[#linetable+1] = w
-  end
-  t[#t + 1] = linetable 
+if not arg[1] then
+  print("Please select a dataset yeast/page")
+  error()
 end
-local data   = Matrix.mat(#t, #t[1] - 2)
-local labels = Matrix.mat(#t, 1)
---data:view(0, "all"):print()
-local classnames = {"CYT", "ERL", "EXC", "ME1", "ME2", "ME3", "MIT", "NUC",
-"POX", "VAC" }
-local classes = Matrix.range(1,#classnames + 1)
-local numClasses = #classnames
-local classMapping = Matrix.range(-1, numClasses)
-local translationTable = {}
-for i,v in ipairs(classnames) do
-  translationTable[v] = i
-end
-Dtools.printtable(classMapping)
---local classMapping = Matrix.range(-1,#classnames)
---local classnames = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"}
---local classnames = {"text", "horiz.line", "graphic", "vert.line", "picture"}
+local data,labels,numClasses,classes,classMapping,classnames = Dataset[arg[1]]()
 
+local betafactor=nil
 
-for i = 1, #t do
-  labels.data[labels:index(i - 1, 0)] = translationTable[t[i][#t[i] ] ]
-  for j = 2, #t[i] - 1 do
-    data.data[data:index(i - 1,j - 2)] = tonumber(t[i][j])
-  end
+if not arg[2] then
+  print("betafactor set to default 1.5")
+  betafactor = 1.5
+else
+  betafactor = arg[2]
 end
 
---labels:print()
-
-local data = data:view("all", {0,1,2,3,4,6,7}):materialize()
-
-local zmq = require("zmq")
-local ctx = zmq.init()
-local s = ctx:socket(zmq.REQ)
-s:connect("ipc:///tmp/zmq-test")
-s:send("yeast_prior1")
-local ret = s:recv()
-print("Response from Python: ", ret)
-data:send(s)
-labels:send(s)
-
+local s,ctx = nil, nil
 --Dtools.printtable(classes)
 RandomForest.Debug = false
 
@@ -73,23 +43,15 @@ RandomForest.Debug = false
 local SHOW_ACCURACY = true
 local PLOT = true
 
---data:print()
-local densities = Density.query(data, 1)
-for i = 0, densities.n_elem - 1 do
-  densities.data[i] = math.exp(densities.data[i])
-end
---densities:print()
---local zeroes = Matrix.mat(densities.n_rows, densities.n_cols)
---local densities = zeroes - densities
-
-
-local numRuns = 1
+local numRuns = 3
 local run = 0 
 
 local allResults = {}
 local maxSamples = 150
 while run < numRuns do
   run = run + 1
+
+  Dtools.printtable(classes)
 
   local candidateIndices = Workflow.filterClasses(labels, classes)
 
@@ -105,6 +67,7 @@ while run < numRuns do
   local numLabeledSamples = 0
 
   local results = Matrix.mat(maxSamples, numClasses)
+  local detectionRate = Matrix.mat(maxSamples, 1)
   local pickedLabels = Matrix.mat(maxSamples, 1)
   local bestTUV      = Matrix.mat(maxSamples, numClasses)
   while numLabeledSamples < maxSamples do
@@ -126,8 +89,52 @@ while run < numRuns do
     --Dtools.printtable(queryIndices, "queryIndices")
     --Dtools.printtable(trainSet.labels(trainingIndices, "all"):count(), "TrainingLabels")
 
+
+    local minData, minIndices = data(trainingIndices, featureIndices):min("rows")
+    local maxData, maxIndices = data(trainingIndices, featureIndices):max("rows")
+    --minData:print()
+    --maxData:print()
+    local min = minData:toTable()
+    local max = maxData:toTable()
+    --Dtools.waitInput() 
+
+    --local RangeFilter = require("rangefilter")
+    --points in rFilteredIndices are OUTSIDE the range spanned by min/max
+    local queryData = data:view(queryIndices, featureIndices)
+    local rFilteredIndicesView = RangeFilter.inverseFilterRanges(queryData, min, max)
+    local rFilteredIndices = queryData:view(rFilteredIndicesView, "all").row_indices
+   
+    --points in filteredIndices are IN the range spanned by min/max
+    local filteredIndicesView = RangeFilter.filterRanges(queryData, min, max)
+    local filteredIndices = queryData:view(filteredIndicesView, "all").row_indices
+
+    --data:view(filteredIndices, featureIndices):print("filteredData")
+    local buildingIndices
+    --local expanding = true
+    
+    --if numLabeledSamples % 2 == 1 or #filteredIndices == 0 then
+    --[[
+    if #rFilteredIndices >= 0.1 * #queryIndices then
+      buildingIndices = rFilteredIndices
+    else
+      buildingIndices = filteredIndices
+      expanding = false
+    end
+    ]]--
+    buildingIndices=queryIndices
+    --if #rFilteredIndices > #trainingIndices then
+    --[[
+    if 0 > 1 then
+      buildingIndices = rFilteredIndices
+    else
+      buildingIndices = queryIndices
+      expanding = false
+    end
+    ]]--
+
+    print("number of query Indices: ", #buildingIndices)
     local rf = Workflow.buildForest(
-    data, labels, trainingIndices, queryIndices, featureIndices
+    data, labels, trainingIndices, buildingIndices, featureIndices, nil, betafactor
     ) 
     ----STATISTICS
     ----local leafSizeCounts = rf:visitAllNodes(RandomForest.accumulators.leafSizeCounter)
@@ -168,19 +175,22 @@ while run < numRuns do
       --local bagSize = math.floor(defaultBagsize *2) --number of combined training and unlabeled samples
 
       --local rf_mod = Workflow.buildForest(trainSet.kernel, trainSet.labels, trainingIndices, queryIndices, featureIndices, options) 
-
-      local acc_summary, acc_counts, predictions = Workflow.testAccuracy(rf, data(queryIndices, "all"), labels(queryIndices, "all"), classes)
+      local rf_mod = RandomForest.create(200)
+      rf_mod:learn(data(trainingIndices, "all"), labels(trainingIndices, "all"))
+      local acc_summary, acc_counts, predictions = Workflow.testAccuracy(rf_mod, data(queryIndices, "all"), labels(queryIndices, "all"), classes)
       for class, t in pairs(acc_counts) do
         local ratio = t.correct / t.count
+        if ratio ~= ratio then ratio = 1 end
         io.write(string.format("class: %d %.02f\n", class, ratio)) 
         results.data[results:index(numLabeledSamples - 1, classMapping[class])] = ratio
 
       end
       print("global ratio: ", acc_summary.correct / acc_summary.count)
-      Matrix.Mat(trainingIndices):send(s)
-      Matrix.Mat(queryIndices):send(s)
-      predictions:send(s)
-
+      if ENABLE_ZMQ then
+        Matrix.Mat(trainingIndices):send(s)
+        Matrix.Mat(queryIndices):send(s)
+        predictions:send(s)
+      end
       --local accumulator = rf_mod:predict(testSet.kernel, {accumulator = RandomForest.accumulators.treeCounter(numClasses, 6, classMapping, numTrees)})
       --if run == numRuns and numLabeledSamples == maxSamples then
       --  for i = 0, 10 do
@@ -193,7 +203,7 @@ while run < numRuns do
     --ATTENTION: this will probably hurt me down the road: let's create the counts-matrix in
     --C-order 
 
-----[[ this is the old version for predicting/voting
+    ----[[ this is the old version for predicting/voting
     local accumulator = rf:predict(
     data(queryIndices, featureIndices), 
     {accumulator = RandomForest.accumulators.singleVoter}
@@ -207,15 +217,15 @@ while run < numRuns do
         end
       end
     end
---    ]]--
---[[
+    --    ]]--
+    --[[
     local accumulator = rf:predict(
     data(queryIndices, featureIndices), 
     {accumulator = RandomForest.accumulators.treeCounter(numClasses, 6, classMapping, Workflow.numTrees)}
     )
 
     local counts = accumulator.distributions
-]]--
+    ]]--
 
     --counts:print()
 
@@ -224,41 +234,77 @@ while run < numRuns do
     --local marginalProbs = trainSet.kernel(queryIndices, "all"):sum("cols")
     --local marginalProbs = Matrix.mat(#t, 1)
     --marginalProbs:view("all", "all"):set(1)
-    s:send(tostring(trainingIndices[#trainingIndices]))
-    local densities_experimental = Matrix.fromZMQ(s)
+    if ENABLE_ZMQ then
+      s:send(tostring(trainingIndices[#trainingIndices]))
+    end
+    if ENABLE_ZMQ then
+      local densities_experimental = Matrix.fromZMQ(s)
+    end
     --densities_experimental:params()
     --Dtools.waitInput()
     --local meta = s:recv()
     --local dat = s:recv()
     --print(meta)
     --s:send("OK")
-    s:recv()
-    local marginalProbs = densities_experimental(queryIndices, "all")
+    local marginalProbs = nil
+    if ENABLE_ZMQ then
+      s:recv()
+      --marginalProbs = densities_experimental(queryIndices, "all")
+    end
+    marginalProbs = Matrix.mat(#queryIndices, #featureIndices)
+
+
     --marginalProbs:print()
-    --marginalProbs:view("all", "all"):set(1)
+    marginalProbs:view("all", "all"):set(1)
     --marginalProbs:print()
     --calculate TUV, add new label
-    local lambda = {1,1}
+    local lambda = {0,1}
 
     local tuvIndices, tuv = TUV.getBestTuv(counts, marginalProbs, lambda)
+     
+    
+
+
     --ANALYSIS
+
+    local trainingIndicesHistogram, detectionCount = labels(trainingIndices, "all"):count()
+    Dtools.printtable(trainingIndicesHistogram)
+
+    detectionRate.data[numLabeledSamples - 1] = detectionCount / (#classes + 1)
+    
     pickedLabels.data[numLabeledSamples - 1] = classMapping[labels(trainingIndices[#trainingIndices], "all").data[0] ]
     bestTUV:view(numLabeledSamples - 1, "all"):set(counts:view(tuvIndices, "all"):view(0,"all"):all())
-
-    --END ANALYSIS
+    local goodIndex = Selector(tuv)
+    trainingIndices[#trainingIndices + 1] = queryIndices[goodIndex]
+    
+      
+      --END ANALYSIS
     --tuv:view(testIndices, "all"):print("testIndices")
     --counts:view(tuvIndices, "all"):view({0,1,2,3,4,5},"all"):print("counts")
     --Dtools.printtable(testIndices)
     --1-based tuvIndices, for sorting reasons
-    
+
     --use best tuv as new trainingIndex
     --trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1] ]
     --Pick random sample
-    trainingIndices[#trainingIndices + 1] = queryIndices[math.random(0,#queryIndices)]
-    
+    --trainingIndices[#trainingIndices + 1] = queryIndices[math.random(0,#queryIndices)]
+--[[
+    if expanding then
+      --trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1] ]
+      trainingIndices[#trainingIndices + 1] = queryIndices[goodIndex]
+    else
+      --trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1] ]
+      trainingIndices[#trainingIndices + 1] = queryIndices[goodIndex]
+    end
+    ]]--
+    --trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1]]
+    --for random selection, use the next line instead:
+    --trainingIndices[#trainingIndices +1] =
+    --queryIndices[tuvIndices[math.random(1, #tuvIndices)]]
+    --
+    --just use the TUV based on density
+    --trainingIndices[#trainingIndices + 1] = queryIndices[tuvIndices[1] ]
 
-
-    Dtools.printtable(labels(trainingIndices, "all"):count())
     --trainSet.kernel(trainingIndices, trainingIndices):print("TrainingKernel")
 
     --Dtools.printtable(activeClasses)
@@ -266,13 +312,14 @@ while run < numRuns do
 
   end
 
-  allResults[run - 1] = {labels = pickedLabels, results = results, tuvs = bestTUV}
+  allResults[run - 1] = {labels = pickedLabels, results = results, tuvs = bestTUV, detection = detectionRate}
 
 
 end
 
 --calculate mean + errorbars
 
+local detectionRate_aggregate     = Matrix.mat(maxSamples, 1)
 local mean_aggregate     = Matrix.mat(maxSamples, numClasses)
 local variance_aggregate = Matrix.mat(maxSamples, numClasses)
 
@@ -292,6 +339,12 @@ for i = 0, maxSamples - 1 do
     mean_aggregate.data[mean_aggregate:index(i, j)] = mean
     variance_aggregate.data[variance_aggregate:index(i, j)] = variance
   end
+  local detection = 0
+  for k = 0, numRuns - 1 do
+    detection = detection + allResults[k].detection:at(i)
+  end
+  detectionRate_aggregate.data[i] = detection / numRuns
+
 end
 
 
@@ -317,14 +370,15 @@ for i = 0, maxSamples - 1 do
   end
 end
 
-
-s:close()
-ctx:term()
+if ENABLE_ZMQ then
+  s:close()
+  ctx:term()
+end
 
 --mean_aggregate:print("mean")
 --variance_aggregate:print("variance")
 
-local resultfile = io.open("results.dat", "w+")
+local resultfile = io.open("results/" .. arg[1] .. "_constant_" .. tostring(betafactor) .. ".dat", "w+")
 io.output(resultfile)
 io.write("NumberOfSamples\t")
 for j = 1, #classnames do
@@ -332,7 +386,7 @@ for j = 1, #classnames do
 end
 io.write("\n")
 for i = 0, maxSamples - 1 do
-  io.write(string.format("%d-%d",i + 1, allResults[0].labels:at(i)+1))
+  io.write(string.format("%d-%f",i + 1, detectionRate_aggregate.data[i]))
   for j = 0, mean_aggregate.n_cols -1 do
     io.write(string.format("\t%.04f", mean_aggregate:get(i,j)))
   end
